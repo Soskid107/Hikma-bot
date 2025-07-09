@@ -1,0 +1,48 @@
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+FetchError: request to https://api.telegram.org/bot8173997536:[REDACTED]/setMyCommands failed, reason: Hostname/IP does not match certificate's altnames: Host: api.telegram.org. is not in the cert's altnames: DNS:*.fb.com, DNS:fb.com
+    at ClientRequest.<anonymous> (C:\Users\HP\hikma-bot\node_modules\telegraf\node_modules\node-fetch\lib\index.js:1501:11)
+    at ClientRequest.emit (node:events:507:28)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:104:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:507:28)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21)
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+FetchError: request to https://api.telegram.org/bot8173997536:[REDACTED]/setWebhook failed, reason: Hostname/IP does not match certificate's altnames: Host: api.telegram.org. is not in the cert's altnames: DNS:*.fb.com, DNS:fb.com
+    at ClientRequest.<anonymous> (C:\Users\HP\hikma-bot\node_modules\telegraf\node_modules\node-fetch\lib\index.js:1501:11)
+    at ClientRequest.emit (node:events:507:28)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:104:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:507:28)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21)
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+FetchError: request to https://api.telegram.org/bot8173997536:[REDACTED]/setWebhook failed, reason: Hostname/IP does not match certificate's altnames: Host: api.telegram.org. is not in the cert's altnames: DNS:*.fb.com, DNS:fb.com
+    at ClientRequest.<anonymous> (C:\Users\HP\hikma-bot\node_modules\telegraf\node_modules\node-fetch\lib\index.js:1501:11)
+    at ClientRequest.emit (node:events:507:28)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:104:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:507:28)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21)
+You have triggered an unhandledRejection, you may have forgotten to catch a Promise rejection:
+FetchError: request to https://api.telegram.org/bot8173997536:[REDACTED]/setMyCommands failed, reason: Hostname/IP does not match certificate's altnames: Host: api.telegram.org. is not in the cert's altnames: DNS:*.fb.com, DNS:fb.com
+    at ClientRequest.<anonymous> (C:\Users\HP\hikma-bot\node_modules\telegraf\node_modules\node-fetch\lib\index.js:1501:11)
+    at ClientRequest.emit (node:events:507:28)
+    at ClientRequest.emit (node:domain:489:12)
+    at emitErrorEvent (node:_http_client:104:11)
+    at TLSSocket.socketErrorListener (node:_http_client:518:5)
+    at TLSSocket.emit (node:events:507:28)
+    at TLSSocket.emit (node:domain:489:12)
+    at emitErrorNT (node:internal/streams/destroy:170:8)
+    at emitErrorCloseNT (node:internal/streams/destroy:129:3)
+    at processTicksAndRejections (node:internal/process/task_queues:90:21)
