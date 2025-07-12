@@ -32,6 +32,9 @@ export class User {
   @Column({ length: 20, default: '21_day' })
   healing_path!: string;
 
+  @Column({ type: 'jsonb', nullable: true })
+  healing_goals?: object;
+
   @Column({ default: true })
   is_active!: boolean;
 

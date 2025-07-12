@@ -208,4 +208,63 @@ ${randomTip.benefits.map(b => '• ' + b).join('\n')}
 Usage: ${randomTip.usage}
 ${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
   }
+}
+
+export async function getRandomHealingTip(category?: string): Promise<HerbalTip | null> {
+  try {
+    const repo = AppDataSource.getRepository(HerbalTip);
+    let tips: HerbalTip[];
+    if (category) {
+      tips = await repo.find({ where: { category } });
+    } else {
+      tips = await repo.find();
+    }
+    
+    if (tips.length > 0) {
+      return tips[Math.floor(Math.random() * tips.length)];
+    }
+    
+    // If no database tips, create a fallback tip from the fallback data
+    const fallbackTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    const tip = repo.create({
+      tip_text: fallbackTip.wisdom,
+      herb_name: fallbackTip.name,
+      scientific_name: fallbackTip.scientific,
+      local_names: { english: fallbackTip.local },
+      benefits: fallbackTip.benefits,
+      usage_instructions: fallbackTip.usage,
+      precautions: fallbackTip.precautions,
+      category: 'general',
+      region: 'Global'
+    });
+    
+    return tip;
+  } catch (error) {
+    console.error('❌ Error fetching healing tip:', error);
+    // Return a fallback tip on error
+    const fallbackTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    const tip = new HerbalTip();
+    tip.tip_text = fallbackTip.wisdom;
+    tip.herb_name = fallbackTip.name;
+    tip.scientific_name = fallbackTip.scientific;
+    tip.local_names = { english: fallbackTip.local };
+    tip.benefits = fallbackTip.benefits;
+    tip.usage_instructions = fallbackTip.usage;
+    tip.precautions = fallbackTip.precautions;
+    tip.category = 'general';
+    tip.region = 'Global';
+    
+    return tip;
+  }
+} 
+
+export async function addHerbalTip(tip_text: string): Promise<HerbalTip> {
+  const repo = AppDataSource.getRepository(HerbalTip);
+  const tip = repo.create({
+    tip_text,
+    herb_name: 'General',
+    category: 'general',
+    region: 'West Africa',
+  });
+  return await repo.save(tip);
 } 

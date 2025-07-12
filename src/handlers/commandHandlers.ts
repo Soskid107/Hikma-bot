@@ -5,465 +5,533 @@ import { getOrCreateTodayChecklist } from '../services/checklistService';
 import { getRandomHerbalTip } from '../services/herbalService';
 import { saveJournalEntry } from '../services/journalService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
+import { getRandomChecklistTip } from '../services/checklistService';
+import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/userService';
+import { getRandomHealingTip } from '../services/herbalService';
+import { t } from '../utils/i18n';
+import { isAdmin } from '../config/admin';
+import { addHerbalTip } from '../services/herbalService';
+import { countJournalEntries } from '../services/journalService';
+import { mainMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, wisdomMenuKeyboard, checklistMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, healingMenuKeyboard } from './ui';
+import { handleError } from '../utils/errorHandler';
 
-export const mainMenuKeyboard = {
-  keyboard: [
-    [
-      { text: "📋 Today's Checklist" },
-      { text: '📜 Wisdom Quote' }
-    ],
-    [
-      { text: '🌿 Herbal Tips' },
-      { text: '📝 Journal' }
-    ],
-    [
-      { text: '🏥 Health Guidance' },
-      { text: '⚙️ Settings' }
-    ]
-  ],
-  resize_keyboard: true,
-  one_time_keyboard: false
-};
+const supportedLangs = ['en', 'fr', 'ar', 'sw'] as const;
+type SupportedLang = typeof supportedLangs[number];
 
-export const awaitingJournalEntry: { [userId: number]: boolean } = {};
 
-const affirmations = [
-  '🌅 Every reflection is a step toward healing. Keep going! 🕯️',
-  '💡 Your thoughts matter. Journaling is self-care.',
-  '🌿 Healing is a journey, not a destination. You are making progress.',
-  '🕯️ Ibn Sina: "The knowledge of anything, since all things have causes, is not acquired or complete unless it is known by its causes."',
-  '✨ Small steps every day lead to big changes.'
-];
+import { setUserState, getUserState, clearUserState, UserState } from '../services/stateService';
+
+
+
 
 // Start command
 bot.command('start', async (ctx) => {
-  const chatId = ctx.chat.id;
-  const telegramUser = ctx.from;
-  let firstName = telegramUser?.first_name || 'friend';
-
-  // Register or update the user in the database
   try {
-    await findOrCreateUser(telegramUser);
-  } catch (error) {
-    console.error('❌ Error registering user:', error);
-    ctx.reply('Sorry, there was an error registering you. Please try again later.');
-    return;
-  }
+    const chatId = ctx.chat.id;
+    const telegramUser = ctx.from;
+    let firstName = telegramUser?.first_name || 'friend';
 
-  const welcomeMessage = `
-🕯️ Welcome to Hikma - Your Healing Journey Begins!
+    // Register or update the user in the database
+    let user = await findOrCreateUser(telegramUser);
+
+    // Check if user already has healing goals
+    if (user.healing_goals && Object.keys(user.healing_goals).length > 0) {
+      // Existing user - show main menu directly
+      const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
+
+      await ctx.reply(mainMenu, {
+        parse_mode: 'Markdown',
+        reply_markup: mainMenuKeyboard.reply_markup
+      });
+    } else {
+      // New user - show onboarding
+      const welcomeMessage = `🕯️ Welcome to Hikma - Your Healing Journey Begins!
 
 السلام عليكم وبركاته
 
 I am Hikma, your companion on a 21-day healing journey inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age.
 
-Are you ready to begin your transformation, ${firstName}?
-  `;
+Ready to begin your transformation?`;
 
-  ctx.reply(welcomeMessage, {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' },
-          { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' }
-        ]
-      ]
+      await ctx.reply(welcomeMessage, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' },
+              { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' }
+            ]
+          ]
+        }
+      });
     }
-  });
+  } catch (error) {
+    handleError(ctx, error, 'Sorry, there was an error registering you. Please try again later.');
+  }
+});
+
+// Menu command
+bot.command('menu', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const firstName = user.first_name || 'friend';
+    
+    const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
+
+    await ctx.reply(mainMenu, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '📜 Wisdom Quote', callback_data: 'wisdom_quote' },
+            { text: '🌿 Herbal Tips', callback_data: 'herbal_tips' }
+          ],
+          [
+            { text: '📝 Journal', callback_data: 'journal_menu' },
+            { text: '💡 Healing Tip', callback_data: 'healing_tip' }
+          ],
+          [
+            { text: '📋 Daily Checklist', callback_data: 'daily_checklist' },
+            { text: '🏥 Health Guidance', callback_data: 'health_guidance' }
+          ],
+          [
+            { text: '📊 My Stats', callback_data: 'my_stats' },
+            { text: '⚙️ Settings', callback_data: 'settings_menu' }
+          ]
+        ]
+      }
+    });
+  } catch (error) {
+    handleError(ctx, error, '❌ Error loading main menu. Please try again.');
+  }
 });
 
 // Add onboarding_ready callback to show main menu after onboarding
 bot.action('onboarding_ready', async (ctx) => {
-  // Edit the onboarding message to indicate onboarding is complete
-  await ctx.editMessageText('🚀 You are ready! Here is your main menu:', {
-    reply_markup: undefined // Remove inline buttons
-  });
-  // Show the main menu keyboard for easy navigation
-  await ctx.reply(' ', {
-    reply_markup: mainMenuKeyboard
-  });
-  // Immediately pop out the main menu as inline buttons for instant selection
-  await ctx.reply('Select an option:', {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: "📋 Today's Checklist", callback_data: 'menu_checklist' },
-          { text: '📜 Wisdom Quote', callback_data: 'menu_wisdom' }
-        ],
-        [
-          { text: '🌿 Herbal Tips', callback_data: 'menu_herbal' },
-          { text: '📝 Journal', callback_data: 'menu_journal' }
-        ],
-        [
-          { text: '🏥 Health Guidance', callback_data: 'menu_health' },
-          { text: '⚙️ Settings', callback_data: 'menu_settings' }
-        ]
-      ]
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    
+    // Check if user already has healing goals
+    if (user.healing_goals && Object.keys(user.healing_goals).length > 0) {
+      // Existing user - show main menu directly
+      const firstName = user.first_name || 'friend';
+      const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
+
+      await ctx.editMessageText(mainMenu, {
+        parse_mode: 'Markdown',
+        reply_markup: mainMenuKeyboard.reply_markup
+      });
+      await ctx.answerCbQuery('Welcome back!');
+    } else {
+      // New user - ask for healing goals
+      const userId = ctx.from?.id;
+      if (userId) {
+        setUserState(userId, UserState.AWAITING_HEALING_GOALS);
+      }
+      await ctx.editMessageText('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', {
+        parse_mode: 'Markdown',
+        reply_markup: undefined
+      });
+      await ctx.answerCbQuery();
     }
-  });
-  await ctx.answerCbQuery();
+  } catch (error) {
+    handleError(ctx, error, 'Error during onboarding ready action.');
+  }
 });
+
+// Add onboarding_learn_more callback
+bot.action('onboarding_learn_more', async (ctx) => {
+  try {
+    await ctx.editMessageText(`🕯️ About Hikma - Your Healing Companion
+
+I am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:
+
+🌿 Traditional Herbal Medicine
+🧘 Spiritual Wellness
+💭 Philosophical Reflection
+📝 Mindful Journaling
+📋 Daily Healing Rituals
+
+This 21-day journey will help you:
+• Establish healthy daily routines
+• Learn about natural healing methods
+• Reflect on your spiritual and physical well-being
+• Build lasting wellness habits
+
+Ready to begin your transformation?`, {
+      parse_mode: 'Markdown',
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' }
+          ]
+        ]
+      }
+    });
+    ctx.answerCbQuery();
+  } catch (error) {
+    handleError(ctx, error, 'Error during onboarding learn more action.');
+  }
+});
+
+
+
+
+
+
+
+async function sendWisdomQuote(ctx: any) {
+  try {
+    let quote = await getRandomWisdomQuote();
+    if (!quote || quote.includes('Could not fetch')) {
+      quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
+    }
+    ctx.reply(`📜 Wisdom Quote:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
+  } catch (error) {
+    handleError(ctx, error, 'Error sending wisdom quote.');
+  }
+}
 
 // Wisdom command
 bot.command('wisdom', async (ctx) => {
-  const chatId = ctx.chat.id;
-  let quote = await getRandomWisdomQuote();
-  if (!quote || quote.includes('Could not fetch')) {
-    quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
-  }
-  ctx.reply(`📜 Wisdom Quote:\n${quote}`, {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🔄 Another Quote', callback_data: 'wisdom_teach_me_more' },
-          { text: '🌿 Healing Wisdom', callback_data: 'wisdom_healing' }
-        ],
-        [
-          { text: '🧘 Spiritual Wisdom', callback_data: 'wisdom_spiritual' },
-          { text: '💭 Philosophy', callback_data: 'wisdom_philosophy' }
-        ],
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  await sendWisdomQuote(ctx);
 });
+
+
+
+
+async function sendChecklist(ctx: any) {
+  const telegramUser = ctx.from;
+  try {
+    const user = await findOrCreateUser(telegramUser);
+    const checklist = await getOrCreateTodayChecklist(user);
+    const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
+    const checklistMsg = `
+🕯️ Day ${user.current_day} - "Purify the Liver"
+السلام عليكم! Time for your healing checklist
+
+Morning Rituals:
+💧 Warm Water (500ml) [${checklist.warm_water ? '✅' : '❌'}]
+🌿 Black Seed + Garlic [${checklist.black_seed_garlic ? '✅' : '❌'}]
+🥗 Light Food Before 8pm [${checklist.light_food_before_8pm ? '✅' : '❌'}]
+😴 Sleep by 10pm [${checklist.sleep_time ? '✅' : '❌'}]
+🧘 5-min Thought Clearing [${checklist.thought_clearing ? '✅' : '❌'}]
+
+Progress: ${progressBar} ${checklist.completion_percentage}% Complete
+`;
+    ctx.reply(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
+  } catch (error) {
+    handleError(ctx, error, 'Sorry, there was an error fetching your checklist. Please try again later.');
+  }
+}
 
 // Checklist command
 bot.command('checklist', async (ctx) => {
-  const chatId = ctx.chat.id;
-  const telegramUser = ctx.from;
-  try {
-    const user = await findOrCreateUser(telegramUser);
-    const checklist = await getOrCreateTodayChecklist(user);
-    const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-    const checklistMsg = `
-🕯️ Day ${user.current_day} - "Purify the Liver"
-السلام عليكم! Time for your healing checklist
-
-Morning Rituals:
-💧 Warm Water (500ml) [${checklist.warm_water ? '✅' : '❌'}]
-🌿 Black Seed + Garlic [${checklist.black_seed_garlic ? '✅' : '❌'}]
-🥗 Light Food Before 8pm [${checklist.light_food_before_8pm ? '✅' : '❌'}]
-😴 Sleep by 10pm [${checklist.sleep_time ? '✅' : '❌'}]
-🧘 5-min Thought Clearing [${checklist.thought_clearing ? '✅' : '❌'}]
-
-Progress: ${progressBar} ${checklist.completion_percentage}% Complete
-`;
-    ctx.reply(checklistMsg, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: `💧 Warm Water ${checklist.warm_water ? '✅' : '❌'}`, callback_data: `toggle_warm_water_${checklist.id}` },
-            { text: `🌿 Black Seed + Garlic ${checklist.black_seed_garlic ? '✅' : '❌'}`, callback_data: `toggle_black_seed_garlic_${checklist.id}` }
-          ],
-          [
-            { text: `🥗 Light Food Before 8pm ${checklist.light_food_before_8pm ? '✅' : '❌'}`, callback_data: `toggle_light_food_before_8pm_${checklist.id}` },
-            { text: `😴 Sleep by 10pm ${checklist.sleep_time ? '✅' : '❌'}`, callback_data: `toggle_sleep_time_${checklist.id}` }
-          ],
-          [
-            { text: `🧘 Thought Clearing ${checklist.thought_clearing ? '✅' : '❌'}`, callback_data: `toggle_thought_clearing_${checklist.id}` }
-          ],
-          [
-            { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-          ]
-        ]
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching checklist:', error);
-    ctx.reply('Sorry, there was an error fetching your checklist. Please try again later.');
-  }
+  await sendChecklist(ctx);
 });
+
+// ... (rest of the file)
+
+
+
+async function sendHerbalTip(ctx: any) {
+  try {
+    const tip = await getRandomHerbalTip();
+    ctx.reply(tip, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
+  } catch (error) {
+    handleError(ctx, error, 'Sorry, there was an error fetching a herbal tip. Please try again later.');
+  }
+}
 
 // Herbal tip command
 bot.command('herbtip', async (ctx) => {
-  const chatId = ctx.chat.id;
-  try {
-    const tip = await getRandomHerbalTip();
-    ctx.reply(tip, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🌿 Another Herbal Tip', callback_data: 'herbal_another_tip' }
-          ],
-          [
-            { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-          ]
-        ]
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error fetching herbal tip:', error);
-    ctx.reply('Sorry, there was an error fetching a herbal tip. Please try again later.');
-  }
+  await sendHerbalTip(ctx);
 });
+
+
+
+
+async function sendJournalMenu(ctx: any) {
+  try {
+    await ctx.reply('📝 Journal Menu:\nWhat would you like to do?', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
+  } catch (error) {
+    handleError(ctx, error, 'Error sending journal menu.');
+  }
+}
 
 // Journal command
 bot.command('journal', async (ctx) => {
-  const chatId = ctx.chat.id;
-  const userId = ctx.from?.id;
-  if (!userId) return;
-  awaitingJournalEntry[userId] = true;
-  ctx.reply('📝 Please write your journal entry for today. I am listening...\n\n💡 Tip: Write about your thoughts, feelings, or any insights from your healing journey.\n\n❌ To cancel, type "cancel"', {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '❌ Cancel Journal Entry', callback_data: 'cancel_journal' }
-        ],
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  await sendJournalMenu(ctx);
 });
+
+
+
+
+
+async function sendHealthGuidance(ctx: any) {
+  try {
+    const args = ctx.message?.text?.split(' ').slice(1);
+    if (!args || args.length === 0) {
+      const availableSymptoms = getAvailableSymptoms();
+      ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+      return;
+    }
+    
+    const symptom = args.join(' ');
+    const guidance = await getHealthGuidance(symptom);
+    ctx.reply(guidance, { parse_mode: 'Markdown' });
+  } catch (error) {
+    handleError(ctx, error, 'Error sending health guidance.');
+  }
+}
 
 // Health guidance command
 bot.command('health', async (ctx) => {
-  const args = ctx.message.text?.split(' ').slice(1);
-  if (!args || args.length === 0) {
-    const availableSymptoms = getAvailableSymptoms();
-    ctx.reply(`🏥 **Health Guidance System**
+  await sendHealthGuidance(ctx);
+});
 
-I can provide educational information about common symptoms and wellness advice.
 
-📋 **Available Symptoms:**
-${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}
 
-💡 **How to use:**
-/health [symptom]
-Example: /health headache
 
-⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🤕 Headache', callback_data: 'health_headache' },
-            { text: '😴 Fatigue', callback_data: 'health_fatigue' }
-          ],
-          [
-            { text: '🤢 Digestive Issues', callback_data: 'health_digestive_issues' },
-            { text: '😴 Sleep Problems', callback_data: 'health_sleep_problems' }
-          ],
-          [
-            { text: '😰 Stress & Anxiety', callback_data: 'health_stress_anxiety' }
-          ],
-          [
-            { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-          ]
-        ]
-      }
-    });
-    return;
+async function sendHealingTip(ctx: any) {
+  try {
+    const tipObj = await getRandomHealingTip();
+    let tipText = 'No healing tips available at the moment.';
+    
+    if (tipObj) {
+      tipText = `💡 **Healing Tip**
+
+**${tipObj.herb_name || 'Natural Healing'}**
+${tipObj.tip_text || 'Focus on your healing journey today.'}
+
+${tipObj.benefits && tipObj.benefits.length > 0 ? `**Benefits:**
+${tipObj.benefits.map(b => '• ' + b).join('\n')}` : ''}
+
+${tipObj.usage_instructions ? `**Usage:** ${tipObj.usage_instructions}` : ''}
+${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
+    }
+    
+    ctx.reply(tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
+  } catch (error) {
+    handleError(ctx, error, 'Error sending healing tip.');
   }
-  
-  const symptom = args.join(' ');
-  const guidance = await getHealthGuidance(symptom);
-  ctx.reply(guidance);
+}
+
+// Healing tip command
+bot.command('healingtip', async (ctx) => {
+  await sendHealingTip(ctx);
 });
 
-// Menu command - accessible from the main menu button
-bot.command('menu', async (ctx) => {
-  await ctx.reply('🏠 **Main Menu**\n\nWelcome! Use the menu button (left of the message box) to navigate. Select a section to begin your healing journey.', {
-    reply_markup: mainMenuKeyboard // Use the custom keyboard for main navigation
-  });
+
+// Healing plan command
+bot.command('healingplan', async (ctx) => {
+  try {
+    const userId = ctx.from?.id;
+    if (!userId) return;
+    const healingGoals = await getUserHealingGoals(userId);
+    const plan = generate21DayPlan(healingGoals);
+
+    if (plan.length === 0) {
+      ctx.reply('No healing plan available yet. Please set your healing goals first.');
+      return;
+    }
+
+    let page = 1;
+    const pageSize = 5;
+    const totalPages = Math.ceil(plan.length / pageSize);
+    const showPage = (pageNum: number) => {
+      const start = (pageNum - 1) * pageSize;
+      const end = start + pageSize;
+      const days = plan.slice(start, end).map((tip, i) => `Day ${start + i + 1}: ${tip}`).join('\n\n');
+      ctx.reply(`🗓️ *Your 21-Day Healing Plan* (Page ${pageNum}/${totalPages})\n\n${days}`, {
+        parse_mode: 'Markdown',
+        reply_markup: {
+          inline_keyboard: [
+            [
+              ...(pageNum > 1 ? [{ text: '⬅️ Prev', callback_data: `healingplan_page_${pageNum - 1}` }] : []),
+              ...(pageNum < totalPages ? [{ text: 'Next ➡️', callback_data: `healingplan_page_${pageNum + 1}` }] : [])
+            ],
+            [
+              { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
+            ]
+          ]
+        }
+      });
+    };
+    showPage(page);
+  } catch (error) {
+    handleError(ctx, error, 'Error generating healing plan.');
+  }
 });
+
+// Main menu button handler
+bot.hears('🗓️ Healing Plan', async (ctx) => {
+  try {
+    ctx.telegram.sendMessage(ctx.chat.id, '/healingplan');
+  } catch (error) {
+    handleError(ctx, error, 'Error sending healing plan command.');
+  }
+});
+
+
 
 // Menu button handlers
 bot.hears("📋 Today's Checklist", async (ctx) => {
-  const chatId = ctx.chat.id;
-  const telegramUser = ctx.from;
   try {
-    const user = await findOrCreateUser(telegramUser);
-    const checklist = await getOrCreateTodayChecklist(user);
-    const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-    const checklistMsg = `
-🕯️ Day ${user.current_day} - "Purify the Liver"
-السلام عليكم! Time for your healing checklist
-
-Morning Rituals:
-💧 Warm Water (500ml) [${checklist.warm_water ? '✅' : '❌'}]
-🌿 Black Seed + Garlic [${checklist.black_seed_garlic ? '✅' : '❌'}]
-🥗 Light Food Before 8pm [${checklist.light_food_before_8pm ? '✅' : '❌'}]
-😴 Sleep by 10pm [${checklist.sleep_time ? '✅' : '❌'}]
-🧘 5-min Thought Clearing [${checklist.thought_clearing ? '✅' : '❌'}]
-
-Progress: ${progressBar} ${checklist.completion_percentage}% Complete
-`;
-    ctx.reply(checklistMsg, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: `💧 Warm Water ${checklist.warm_water ? '✅' : '❌'}`, callback_data: `toggle_warm_water_${checklist.id}` },
-            { text: `🌿 Black Seed + Garlic ${checklist.black_seed_garlic ? '✅' : '❌'}`, callback_data: `toggle_black_seed_garlic_${checklist.id}` }
-          ],
-          [
-            { text: `🥗 Light Food Before 8pm ${checklist.light_food_before_8pm ? '✅' : '❌'}`, callback_data: `toggle_light_food_before_8pm_${checklist.id}` },
-            { text: `😴 Sleep by 10pm ${checklist.sleep_time ? '✅' : '❌'}`, callback_data: `toggle_sleep_time_${checklist.id}` }
-          ],
-          [
-            { text: `🧘 Thought Clearing ${checklist.thought_clearing ? '✅' : '❌'}`, callback_data: `toggle_thought_clearing_${checklist.id}` }
-          ],
-          [
-            { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-          ]
-        ]
-      }
-    });
+    await sendChecklist(ctx);
   } catch (error) {
-    console.error('❌ Error fetching checklist:', error);
-    ctx.reply('Sorry, there was an error fetching your checklist. Please try again later.');
+    handleError(ctx, error, 'Error sending checklist.');
   }
 });
 
 bot.hears('📜 Wisdom Quote', async (ctx) => {
-  const quote = await getRandomWisdomQuote();
-  ctx.reply(`📜 Wisdom Quote:\n${quote}`, {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🔄 Another Quote', callback_data: 'wisdom_teach_me_more' },
-          { text: '🌿 Healing Wisdom', callback_data: 'wisdom_healing' }
-        ],
-        [
-          { text: '🧘 Spiritual Wisdom', callback_data: 'wisdom_spiritual' },
-          { text: '💭 Philosophy', callback_data: 'wisdom_philosophy' }
-        ],
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  try {
+    await sendWisdomQuote(ctx);
+  } catch (error) {
+    handleError(ctx, error, 'Error sending wisdom quote.');
+  }
 });
 
 bot.hears('🌿 Herbal Tips', async (ctx) => {
   try {
-    const tip = await getRandomHerbalTip();
-    ctx.reply(tip, {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🌿 Another Herbal Tip', callback_data: 'herbal_another_tip' }
-          ],
-          [
-            { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-          ]
-        ]
-      }
-    });
+    await sendHerbalTip(ctx);
   } catch (error) {
-    console.error('❌ Error fetching herbal tip:', error);
-    ctx.reply('Sorry, there was an error fetching a herbal tip. Please try again later.');
+    handleError(ctx, error, 'Error sending herbal tip.');
   }
 });
 
 bot.hears('🏥 Health Guidance', async (ctx) => {
-  const availableSymptoms = getAvailableSymptoms();
-  ctx.reply(`🏥 **Health Guidance System**
-
-I can provide educational information about common symptoms and wellness advice.
-
-📋 **Available Symptoms:**
-${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}
-
-💡 **How to use:**
-/health [symptom]
-Example: /health headache
-
-⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🤕 Headache', callback_data: 'health_headache' },
-          { text: '😴 Fatigue', callback_data: 'health_fatigue' }
-        ],
-        [
-          { text: '🤢 Digestive Issues', callback_data: 'health_digestive_issues' },
-          { text: '😴 Sleep Problems', callback_data: 'health_sleep_problems' }
-        ],
-        [
-          { text: '😰 Stress & Anxiety', callback_data: 'health_stress_anxiety' }
-        ],
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  try {
+    await sendHealthGuidance(ctx);
+  } catch (error) {
+    handleError(ctx, error, 'Error sending health guidance.');
+  }
 });
 
 bot.hears('📝 Journal', async (ctx) => {
-  const userId = ctx.from?.id;
-  if (!userId) return;
-  awaitingJournalEntry[userId] = true;
-  ctx.reply('📝 Please write your journal entry for today. I am listening...\n\n💡 Tip: Write about your thoughts, feelings, or any insights from your healing journey.\n\n❌ To cancel, type "cancel"', {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '❌ Cancel Journal Entry', callback_data: 'cancel_journal' }
-        ],
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  try {
+    await sendJournalMenu(ctx);
+  } catch (error) {
+    handleError(ctx, error, 'Error sending journal menu.');
+  }
 });
 
+bot.hears('💡 Healing Tip', async (ctx) => {
+  try {
+    await sendHealingTip(ctx);
+  } catch (error) {
+    handleError(ctx, error, 'Error sending healing tip.');
+  }
+});
+
+
+
+async function sendSettingsMenu(ctx: any) {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    
+    await ctx.reply('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { reply_markup: settingsMenuKeyboard });
+  } catch (error) {
+    handleError(ctx, error, '❌ Error in settings:');
+  }
+}
+
+bot.command('settings', async (ctx) => {
+  await sendSettingsMenu(ctx);
+});
 bot.hears('⚙️ Settings', async (ctx) => {
-  ctx.reply('⚙️ **Settings**\n\nSettings feature coming soon!', {
-    reply_markup: {
-      inline_keyboard: [
-        [
-          { text: '🏠 Back to Main Menu', callback_data: 'back_to_main_menu' }
-        ]
-      ]
-    }
-  });
+  await sendSettingsMenu(ctx);
 });
 
-// Handle text messages (for journal entries)
-bot.on('text', async (ctx) => {
-  const chatId = ctx.chat.id;
-  const userId = ctx.from?.id;
-  const text = ctx.message.text?.trim();
-  if (!text || !userId) return;
 
-  if (awaitingJournalEntry[userId]) {
-    // Check for cancel command
-    if (text.toLowerCase() === 'cancel') {
-      ctx.reply('Journal entry cancelled. Here is your main menu:', {
-        reply_markup: mainMenuKeyboard
-      });
-      awaitingJournalEntry[userId] = false;
+
+bot.command('addtip', async (ctx) => {
+  try {
+    const userId = ctx.from?.id;
+    if (!userId) {
+      ctx.reply('❌ Unable to identify user.');
       return;
     }
+    if (!isAdmin(userId)) {
+      ctx.reply('❌ You are not authorized to use this command.');
+      return;
+    }
+    setUserState(userId, UserState.AWAITING_TIP_INPUT);
+    ctx.reply('📝 Please send the healing tip text you want to add.');
+  } catch (error) {
+    handleError(ctx, error, 'Error adding tip.');
+  }
+});
 
-    // Save the journal entry
+
+
+bot.command('mystats', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    let lang: SupportedLang = 'en';
+    if (supportedLangs.includes(user['language_preference'] as SupportedLang)) {
+      lang = user['language_preference'] as SupportedLang;
+    }
+    const progress = await getOrCreateProgressTracking(user);
+    const journalCount = await countJournalEntries(user);
+    const statsMsg = `📊 ${t(lang, 'main_menu')} Stats\n\n` +
+      `🔥 Current Streak: ${progress.current_streak} days\n` +
+      `🏅 Longest Streak: ${progress.longest_streak} days\n` +
+      `✅ Days Completed: ${progress.total_days_completed}\n` +
+      `📖 Journal Entries: ${journalCount}`;
+    ctx.reply(statsMsg, { parse_mode: 'Markdown' });
+  } catch (error) {
+    handleError(ctx, error, 'Error fetching stats.');
+  }
+});
+
+bot.hears('📊 My Stats', async (ctx) => {
+  try {
+    ctx.telegram.sendMessage(ctx.chat.id, '/mystats');
+  } catch (error) {
+    handleError(ctx, error, 'Error sending mystats command.');
+  }
+});
+
+// Handle healing goals input after onboarding
+bot.on('text', async (ctx) => {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+  const state = getUserState(userId);
+  if (state && state.state === UserState.AWAITING_HEALING_GOALS) {
     try {
+      // Save healing goals
       const user = await findOrCreateUser(ctx.from);
-      await saveJournalEntry(user, text);
-      ctx.reply('🌅 Your journal entry has been saved. Reflecting is a step toward healing!');
-      // Send a random affirmation
-      const affirmation = affirmations[Math.floor(Math.random() * affirmations.length)];
-      ctx.reply(affirmation);
-      
-      // Show the main menu again
-      ctx.reply('Here is your main menu:', {
-        reply_markup: mainMenuKeyboard
+      user.healing_goals = { goals: ctx.message.text };
+      const userRepo = require('../config/data-source').default.getRepository(require('../entities/User').User);
+      await userRepo.save(user);
+      clearUserState(userId);
+      // Show main menu
+      await ctx.reply('🌱 Your healing goals have been saved! Here is your main menu:', {
+        reply_markup: {
+          inline_keyboard: [
+            [
+              { text: '📜 Wisdom Quote', callback_data: 'wisdom_quote' },
+              { text: '🌿 Herbal Tips', callback_data: 'herbal_tips' }
+            ],
+            [
+              { text: '📝 Journal', callback_data: 'journal_menu' },
+              { text: '💡 Healing Tip', callback_data: 'healing_tip' }
+            ],
+            [
+              { text: '📋 Daily Checklist', callback_data: 'daily_checklist' },
+              { text: '🏥 Health Guidance', callback_data: 'health_guidance' }
+            ],
+            [
+              { text: '📊 My Stats', callback_data: 'my_stats' },
+              { text: '⚙️ Settings', callback_data: 'settings_menu' }
+            ]
+          ]
+        },
+        parse_mode: 'Markdown'
       });
     } catch (error) {
-      console.error('❌ Error saving journal entry:', error);
-      ctx.reply('Sorry, there was an error saving your journal entry. Please try again later.');
-      // Show the main menu even if there's an error
-      ctx.reply('Here is your main menu:', {
-        reply_markup: mainMenuKeyboard
-      });
+      handleError(ctx, error, 'Error saving your healing goals. Please try again.');
     }
-    awaitingJournalEntry[userId] = false;
-    return;
   }
 });

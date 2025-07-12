@@ -29,6 +29,9 @@ export class HerbalTip {
   @Column({ length: 50, nullable: true })
   seasonal_availability?: string;
 
+  @Column({ length: 50, default: 'general' })
+  category!: string;
+
   @Column({ length: 50, default: 'West Africa' })
   region!: string;
 
