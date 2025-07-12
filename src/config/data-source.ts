@@ -11,6 +11,7 @@ import { HerbalTip } from '../entities/HerbalTip';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
+  url: process.env.POSTGRES_URL || process.env.STORAGE_URL || process.env.DATABASE_URL, // Use POSTGRES_URL for Vercel Neon integration
   host: process.env.DB_HOST || 'localhost',
   port: Number(process.env.DB_PORT) || 5432,
   username: process.env.DB_USERNAME || 'hikma_user',
@@ -26,8 +27,9 @@ const AppDataSource = new DataSource({
     WisdomQuote,
     HerbalTip
   ],
-  synchronize: true, // Use migrations in production!
-  logging: true,
+  synchronize: process.env.NODE_ENV !== 'production', // Only sync in development
+  logging: process.env.NODE_ENV !== 'production',
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
 export default AppDataSource;
