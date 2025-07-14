@@ -3,7 +3,12 @@ import AppDataSource from '../config/data-source';
 import { User } from '../entities/User';
 import { ProgressTracking } from '../entities/ProgressTracking';
 
-export async function findOrCreateUser(telegramUser: any) {
+// Define a type for healing goals
+interface HealingGoals {
+  goals: string;
+}
+
+export async function findOrCreateUser(telegramUser: any): Promise<User> {
   const userRepo = AppDataSource.getRepository(User);
   let user = await userRepo.findOne({ where: { telegram_id: telegramUser.id } });
   if (!user) {
@@ -28,13 +33,13 @@ export async function findOrCreateUser(telegramUser: any) {
 }
 
 // Get all active users
-export async function getAllActiveUsers(): Promise<any[]> {
+export async function getAllActiveUsers(): Promise<User[]> {
   const userRepo = AppDataSource.getRepository(User);
   return userRepo.find({ where: { is_active: true } });
 }
 
 // Update notification settings for a user
-export async function updateNotificationSettings(userId: number, settings: object): Promise<any | null> {
+export async function updateNotificationSettings(userId: number, settings: Record<string, unknown>): Promise<User | null> {
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOne({ where: { id: userId } });
   if (!user) return null;
@@ -44,10 +49,12 @@ export async function updateNotificationSettings(userId: number, settings: objec
 }
 
 // Get a user's healing goals
-export async function getUserHealingGoals(userId: number): Promise<object | null> {
+export async function getUserHealingGoals(userId: number): Promise<HealingGoals | null> {
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOne({ where: { id: userId } });
-  return user?.healing_goals || null;
+  const healingGoals = user?.healing_goals as any;
+  if (!user || !healingGoals || typeof healingGoals.goals !== 'string') return null;
+  return { goals: healingGoals.goals };
 }
 
 // Goal-based plan templates
@@ -104,8 +111,8 @@ const PLAN_TEMPLATES: { [goal: string]: string[] } = {
 };
 
 // Improved plan generator
-export function generate21DayPlan(healingGoals: object | null): string[] {
-  const goalsText = healingGoals && (healingGoals as any).goals ? (healingGoals as any).goals.toLowerCase() : '';
+export function generate21DayPlan(healingGoals: HealingGoals | null): string[] {
+  const goalsText = healingGoals && healingGoals.goals ? healingGoals.goals.toLowerCase() : '';
   const selectedGoals: string[] = [];
   for (const goal of Object.keys(PLAN_TEMPLATES)) {
     if (goalsText.includes(goal)) selectedGoals.push(goal);
@@ -128,7 +135,7 @@ export function generate21DayPlan(healingGoals: object | null): string[] {
 }
 
 // Get or create progress tracking for a user
-export async function getOrCreateProgressTracking(user: any): Promise<any> {
+export async function getOrCreateProgressTracking(user: User): Promise<ProgressTracking> {
   const repo = AppDataSource.getRepository(ProgressTracking);
   let progress = await repo.findOne({ where: { user: { id: user.id } }, relations: ['user'] });
   if (!progress) {
@@ -139,7 +146,7 @@ export async function getOrCreateProgressTracking(user: any): Promise<any> {
 }
 
 // Update streak after completion
-export async function updateUserStreak(user: any): Promise<any> {
+export async function updateUserStreak(user: User): Promise<ProgressTracking> {
   const repo = AppDataSource.getRepository(ProgressTracking);
   let progress = await getOrCreateProgressTracking(user);
   const today = new Date();
@@ -162,7 +169,7 @@ export async function updateUserStreak(user: any): Promise<any> {
 }
 
 // Update user language preference
-export async function updateUserLanguage(userId: number, lang: string): Promise<any | null> {
+export async function updateUserLanguage(userId: number, lang: string): Promise<User | null> {
   const userRepo = AppDataSource.getRepository(User);
   const user = await userRepo.findOne({ where: { id: userId } });
   if (!user) return null;

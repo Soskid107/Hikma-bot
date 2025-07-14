@@ -2,7 +2,18 @@
 // import AppDataSource from '../config/data-source';
 import { HerbalTip } from '../entities/HerbalTip';
 
-const fallbackHerbalTips = [
+// Define a type for fallback tips to match HerbalTip fields
+interface FallbackHerbalTip {
+  name: string;
+  scientific: string;
+  local: string;
+  wisdom: string;
+  benefits: string[];
+  usage: string;
+  precautions?: string;
+}
+
+const fallbackHerbalTips: FallbackHerbalTip[] = [
   {
     name: "Black Seed (Nigella Sativa)",
     scientific: "Nigella sativa",
@@ -157,45 +168,7 @@ const fallbackHerbalTips = [
 
 export async function getRandomHerbalTip(): Promise<string> {
   try {
-    // const repo = AppDataSource.getRepository(HerbalTip);
-    // const count = await repo.count();
-    
-    // if (count === 0) {
-      // Use fallback tips if no database entries
-      const randomTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
-      return `🌿 Today's Herbal Wisdom
-
-${randomTip.name} (${randomTip.scientific})
-Local Names: ${randomTip.local}
-
-${randomTip.wisdom}
-
-Benefits:
-${randomTip.benefits.map(b => '• ' + b).join('\n')}
-
-Usage: ${randomTip.usage}
-${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
-    // }
-    
-    // // Use database entries if available
-    // const tips = await repo.find();
-    // const tip = tips[Math.floor(Math.random() * tips.length)];
-    // return `🌿 Today's Herbal Wisdom
-
-    // ${tip.herb_name} (${tip.scientific_name || ''})
-    // Local Names: ${tip.local_names ? Object.values(tip.local_names).join(', ') : 'N/A'}
-
-    // ${tip.tip_text}
-
-    // Benefits:
-    // ${tip.benefits ? tip.benefits.map(b => '• ' + b).join('\n') : 'N/A'}
-
-    // Usage: ${tip.usage_instructions || 'N/A'}
-    // ${tip.precautions ? '⚠️ ' + tip.precautions : ''}`;
-  } catch (error) {
-    console.error('❌ Error fetching herbal tip:', error);
-    // Return a random fallback tip on error
-    const randomTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    const randomTip: FallbackHerbalTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
     return `🌿 Today's Herbal Wisdom
 
 ${randomTip.name} (${randomTip.scientific})
@@ -204,7 +177,22 @@ Local Names: ${randomTip.local}
 ${randomTip.wisdom}
 
 Benefits:
-${randomTip.benefits.map(b => '• ' + b).join('\n')}
+${randomTip.benefits.map((b: string) => '• ' + b).join('\n')}
+
+Usage: ${randomTip.usage}
+${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
+  } catch (error) {
+    console.error('❌ Error fetching herbal tip:', error);
+    const randomTip: FallbackHerbalTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    return `🌿 Today's Herbal Wisdom
+
+${randomTip.name} (${randomTip.scientific})
+Local Names: ${randomTip.local}
+
+${randomTip.wisdom}
+
+Benefits:
+${randomTip.benefits.map((b: string) => '• ' + b).join('\n')}
 
 Usage: ${randomTip.usage}
 ${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
@@ -213,20 +201,7 @@ ${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
 
 export async function getRandomHealingTip(category?: string): Promise<HerbalTip | null> {
   try {
-    // const repo = AppDataSource.getRepository(HerbalTip);
-    // let tips: HerbalTip[];
-    // if (category) {
-    //   tips = await repo.find({ where: { category } });
-    // } else {
-    //   tips = await repo.find();
-    // }
-    
-    // if (tips.length > 0) {
-    //   return tips[Math.floor(Math.random() * tips.length)];
-    // }
-    
-    // If no database tips, create a fallback tip from the fallback data
-    const fallbackTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    const fallbackTip: FallbackHerbalTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
     const tip = new HerbalTip();
     tip.tip_text = fallbackTip.wisdom;
     tip.herb_name = fallbackTip.name;
@@ -237,12 +212,10 @@ export async function getRandomHealingTip(category?: string): Promise<HerbalTip 
     tip.precautions = fallbackTip.precautions;
     tip.category = 'general';
     tip.region = 'Global';
-    
     return tip;
   } catch (error) {
     console.error('❌ Error fetching healing tip:', error);
-    // Return a fallback tip on error
-    const fallbackTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
+    const fallbackTip: FallbackHerbalTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
     const tip = new HerbalTip();
     tip.tip_text = fallbackTip.wisdom;
     tip.herb_name = fallbackTip.name;
@@ -253,7 +226,6 @@ export async function getRandomHealingTip(category?: string): Promise<HerbalTip 
     tip.precautions = fallbackTip.precautions;
     tip.category = 'general';
     tip.region = 'Global';
-    
     return tip;
   }
 } 
