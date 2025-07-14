@@ -10,7 +10,7 @@ import { HerbalTip } from '../entities/HerbalTip';
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  url: process.env.DATABASE_POSTGRES_URL_NO_SSL,
+  url: process.env.DATABASE_URL,
   entities: [
     User,
     DailyChecklist,
