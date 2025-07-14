@@ -4,8 +4,9 @@
   "description": "Hikma - A Telegram bot inspired by Ibn Sina's healing philosophy",
   "main": "dist/app.js",
   "scripts": {
-    "build": "ts-node src/app.ts",
-    "start": "ts-node src/app.ts",
+    "prebuild": "chmod +x ./node_modules/.bin/tsc",
+    "build": "tsc",
+    "start": "node dist/app.js",
     "dev": "ts-node src/app.ts",
     "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/InitialMigration",
@@ -45,6 +46,7 @@
     "@vercel/node": "^5.3.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
-    "typeorm": "^0.3.25"
+    "typeorm": "^0.3.25",
+    "typescript": "^5.8.3"
   }
 }
