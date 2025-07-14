@@ -30,7 +30,7 @@ function intervalToCron(interval: string) {
   return '0 8 * * *';
 }
 
-const PORT = 3000;
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
 const WEBHOOK_PATH = '/telegram-webhook';
 const webhookUrl = process.env.WEBHOOK_URL as string;
 
@@ -135,7 +135,7 @@ Progress: ${progressBar} ${checklist.completion_percentage}% Complete`;
     });
   })();
 
-  app.listen(PORT, async () => {
+  app.listen(PORT, '0.0.0.0', async () => {
     console.log(`🚀 Express server listening on port ${PORT}`);
     
     // Start the bot after the server is ready
