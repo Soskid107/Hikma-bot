@@ -6,7 +6,7 @@
   "scripts": {
     "prebuild": "chmod +x ./node_modules/.bin/tsc",
     "build": "tsc",
-    "start": "node dist/app.js",
+    "start": "node dist/src/app.js",
     "dev": "ts-node src/app.ts",
     "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/InitialMigration",
