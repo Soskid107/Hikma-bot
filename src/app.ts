@@ -8,6 +8,7 @@ import { User } from './entities/User';
 import { getAllActiveUsers, getUserHealingGoals, generate21DayPlan } from './services/userService';
 import { getOrCreateTodayChecklist } from './services/db/checklistService';
 import { getRandomHealingTip } from './services/db/healingTipService';
+import { Request, Response, NextFunction } from 'express';
 
 
 // Global error logging
@@ -64,7 +65,11 @@ function main() {
       require('./handlers/healingTipHandlers');
 
       if (webhookUrl && webhookUrl.startsWith('https://')) {
-        app.use(bot.webhookCallback(WEBHOOK_PATH));
+        app.use(WEBHOOK_PATH, (req, res, next) => {
+          console.log('Received webhook request:', req.method, req.url, req.body);
+          next();
+        });
+        app.use(WEBHOOK_PATH, bot.webhookCallback(WEBHOOK_PATH));
         console.log(`📡 Webhook endpoint: http://localhost:${PORT}${WEBHOOK_PATH}`);
       }
 
@@ -147,3 +152,9 @@ Progress: ${progressBar} ${checklist.completion_percentage}% Complete`;
 }
 
 main();
+
+// Add global error handler after all routes
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error('Global error handler:', err);
+  res.status(500).send('Internal Server Error');
+});
