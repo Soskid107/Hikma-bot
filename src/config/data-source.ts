@@ -8,6 +8,9 @@ import { UserInteraction } from '../entities/UserInteraction';
 import { WisdomQuote } from '../entities/WisdomQuote';
 import { HerbalTip } from '../entities/HerbalTip';
 
+// Debug: Check if DATABASE_URL is loaded
+console.log('DATABASE_URL:', process.env.DATABASE_URL ? 'SET' : 'NOT SET');
+
 const AppDataSource = new DataSource({
   type: 'postgres',
   url: process.env.DATABASE_URL,
@@ -21,7 +24,7 @@ const AppDataSource = new DataSource({
     WisdomQuote,
     HerbalTip
   ],
-  synchronize: false, // Use migrations!
+  synchronize: true, // Temporarily enable to sync schema
   logging: false,
   migrations: [__dirname + '/../migrations/*.ts'],
 });
