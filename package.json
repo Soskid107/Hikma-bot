@@ -2,9 +2,10 @@
   "name": "hikma-bot",
   "version": "1.0.0",
   "description": "Hikma - A Telegram bot inspired by Ibn Sina's healing philosophy",
-  "main": "api/webhook.ts",
+  "main": "dist/app.js",
   "scripts": {
-    "start": "ts-node src/app.ts",
+    "build": "tsc",
+    "start": "node dist/app.js",
     "dev": "ts-node src/app.ts",
     "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/InitialMigration",
