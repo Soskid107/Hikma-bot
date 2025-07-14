@@ -48,6 +48,11 @@ const webhookUrl = process.env.WEBHOOK_URL as string;
 const app = express();
 app.use(express.json());
 
+// Health check endpoint for Railway
+app.get('/health', (req, res) => {
+  res.send('OK');
+});
+
 function main() {
   AppDataSource.initialize()
     .then(() => {
