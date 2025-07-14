@@ -1,7 +1,7 @@
 import { Telegraf } from 'telegraf';
 import { message } from 'telegraf/filters';
 
-const token = process.env.TELEGRAM_BOT_TOKEN as string;
+const token = process.env.TELEGRAM_BOT_TOKEN || '8173997536:AAH58Wfg7DV3kewNN4G9dno_GMs6R-yPcag';
 const webhookUrl = process.env.WEBHOOK_URL as string;
 
 export const bot = new Telegraf(token);
@@ -17,16 +17,16 @@ bot.telegram.setMyCommands([
   { command: 'health', description: '🏥 Health guidance' }
 ]);
 
-// Only set webhook if we have a proper HTTPS URL
-if (webhookUrl && webhookUrl.startsWith('https://')) {
-  bot.telegram.setWebhook(webhookUrl);
-  console.log('✅ Webhook set to:', webhookUrl);
-} else {
-  console.log('⚠️ No valid HTTPS webhook URL provided, using polling mode');
-  // Start polling in the background
-  bot.launch().then(() => {
+// Function to start the bot
+export const startBot = async () => {
+  // Only set webhook if we have a proper HTTPS URL
+  if (webhookUrl && webhookUrl.startsWith('https://')) {
+    await bot.telegram.setWebhook(webhookUrl);
+    console.log('✅ Webhook set to:', webhookUrl);
+  } else {
+    console.log('⚠️ No valid HTTPS webhook URL provided, using polling mode');
+    // Start polling
+    await bot.launch();
     console.log('✅ Bot started in polling mode');
-  }).catch((error) => {
-    console.error('❌ Error starting bot in polling mode:', error);
-  });
-}
+  }
+};

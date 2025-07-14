@@ -1,27 +1,25 @@
 import { bot } from '../services/botService';
+import { getOrCreateTodayChecklist, updateChecklistItem, getRandomChecklistTip } from '../services/checklistService';
+import { getUserProgressSummary, getDailyTip, getCustomizedChecklistItems } from '../services/healingPlanService';
+import { saveJournalEntry, countJournalEntries } from '../services/journalService';
 import { getRandomWisdomQuote } from '../services/wisdomService';
-import { findOrCreateUser } from '../services/userService';
-import { getOrCreateTodayChecklist } from '../services/checklistService';
-import { getRandomHerbalTip } from '../services/herbalService';
-import { saveJournalEntry } from '../services/journalService';
+import { getRandomHerbalTip, addHerbalTip } from '../services/herbalService';
+import { getRandomHealingTip } from '../services/db/healingTipService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
-import { getRandomChecklistTip } from '../services/checklistService';
-import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/userService';
-import { getRandomHealingTip } from '../services/herbalService';
+import { findOrCreateUser, getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking, getAllActiveUsers } from '../services/userService';
 import { t } from '../utils/i18n';
 import { isAdmin } from '../config/admin';
-import { addHerbalTip } from '../services/herbalService';
-import { countJournalEntries } from '../services/journalService';
 import { mainMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, wisdomMenuKeyboard, checklistMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, healingMenuKeyboard } from './ui';
+import AppDataSource from '../config/data-source';
+import { User } from '../entities/User';
 import { handleError } from '../utils/errorHandler';
+import { HerbalTip } from '../entities/HerbalTip';
 
 const supportedLangs = ['en', 'fr', 'ar', 'sw'] as const;
 type SupportedLang = typeof supportedLangs[number];
 
 
 import { setUserState, getUserState, clearUserState, UserState } from '../services/stateService';
-
-
 
 
 // Start command
@@ -236,8 +234,8 @@ bot.command('checklist', async (ctx) => {
 
 async function sendHerbalTip(ctx: any) {
   try {
-    const tip = await getRandomHerbalTip();
-    ctx.reply(tip, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
+    const tipText = await getRandomHerbalTip();
+    ctx.reply(tipText, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
   } catch (error) {
     handleError(ctx, error, 'Sorry, there was an error fetching a herbal tip. Please try again later.');
   }
@@ -272,8 +270,8 @@ async function sendHealthGuidance(ctx: any) {
   try {
     const args = ctx.message?.text?.split(' ').slice(1);
     if (!args || args.length === 0) {
-      const availableSymptoms = getAvailableSymptoms();
-      ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+      const availableSymptoms = await getAvailableSymptoms();
+      ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map((symptom: string) => `• ${symptom.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
       return;
     }
     
@@ -295,7 +293,7 @@ bot.command('health', async (ctx) => {
 
 async function sendHealingTip(ctx: any) {
   try {
-    const tipObj = await getRandomHealingTip();
+    const tipObj: HerbalTip | null = await getRandomHealingTip();
     let tipText = 'No healing tips available at the moment.';
     
     if (tipObj) {
@@ -305,7 +303,7 @@ async function sendHealingTip(ctx: any) {
 ${tipObj.tip_text || 'Focus on your healing journey today.'}
 
 ${tipObj.benefits && tipObj.benefits.length > 0 ? `**Benefits:**
-${tipObj.benefits.map(b => '• ' + b).join('\n')}` : ''}
+${tipObj.benefits.map((b: string) => '• ' + b).join('\n')}` : ''}
 
 ${tipObj.usage_instructions ? `**Usage:** ${tipObj.usage_instructions}` : ''}
 ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
@@ -500,10 +498,10 @@ bot.on('text', async (ctx) => {
   const state = getUserState(userId);
   if (state && state.state === UserState.AWAITING_HEALING_GOALS) {
     try {
-      // Save healing goals
+      // Save healing goals (mock version)
       const user = await findOrCreateUser(ctx.from);
+      const userRepo = AppDataSource.getRepository(User);
       user.healing_goals = { goals: ctx.message.text };
-      const userRepo = require('../config/data-source').default.getRepository(require('../entities/User').User);
       await userRepo.save(user);
       clearUserState(userId);
       // Show main menu

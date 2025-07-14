@@ -6,21 +6,16 @@ bot.on('callback_query', (ctx, next) => {
   return next();
 });
 
-import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from '../services/userService';
-import { getOrCreateTodayChecklist, updateChecklistItem } from '../services/checklistService';
-import { getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/healingPlanService';
+import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from '../services/mockUserService';
+import { getOrCreateTodayChecklist, updateChecklistItem, getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/mockServices';
 import { mainMenuKeyboard, checklistMenuKeyboard, wisdomMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, healingMenuKeyboard } from './ui';
 import { handleError } from '../utils/errorHandler';
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
-import { User } from '../entities/User';
 import { isAdmin } from '../config/admin';
 import { setUserState, getUserState, clearUserState, UserState } from '../services/stateService';
-import { getRandomWisdomQuote } from '../services/wisdomService';
-import { getRandomHerbalTip, getRandomHealingTip } from '../services/herbalService';
-import { saveJournalEntry } from '../services/journalService';
+import { getRandomWisdomQuote, getRandomHerbalTip, getRandomHealingTip, saveJournalEntry, countJournalEntries } from '../services/mockServices';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
-import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/userService';
-import { countJournalEntries } from '../services/journalService';
+import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/mockUserService';
 
 const adminIds = (process.env.ADMIN_USER_IDS || '').split(',').map(id => id.trim()).filter(Boolean).map(Number);
 
@@ -79,8 +74,18 @@ bot.action('wisdom_quote', async (ctx) => {
 bot.action('herbal_tips', async (ctx) => {
   try {
     await retryOperation(async () => {
-      const tip = await getRandomHerbalTip();
-      await ctx.editMessageText(tip, { 
+      const tipObj = await getRandomHerbalTip();
+      const tipText = `🌿 **Herbal Tip**
+
+**${tipObj.herb_name}**
+${tipObj.tip_text}
+
+**Benefits:**
+${tipObj.benefits.map((b: string) => '• ' + b).join('\n')}
+
+**Usage:** ${tipObj.usage_instructions}
+⚠️ **Precautions:** ${tipObj.precautions}`;
+      await ctx.editMessageText(tipText, { 
         parse_mode: 'Markdown', 
         reply_markup: herbalMenuKeyboard.reply_markup 
       });
@@ -207,8 +212,8 @@ bot.action('my_stats', async (ctx) => {
       if (supportedLangs.includes(user['language_preference'] as SupportedLang)) {
         lang = user['language_preference'] as SupportedLang;
       }
-      const progress = await getOrCreateProgressTracking(user);
-      const journalCount = await countJournalEntries(user);
+          const progress = await getOrCreateProgressTracking(user.id);
+    const journalCount = await countJournalEntries(user.id);
       const statsMsg = `📊 ${t(lang, 'main_menu')} Stats\n\n` +
         `🔥 Current Streak: ${progress.current_streak} days\n` +
         `🏅 Longest Streak: ${progress.longest_streak} days\n` +

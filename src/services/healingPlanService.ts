@@ -1,7 +1,8 @@
-import AppDataSource from '../config/data-source';
-import { User } from '../entities/User';
-import { DailyChecklist } from '../entities/DailyChecklist';
-import cron from 'node-cron';
+// Database service disabled for local/mock-only operation
+// import AppDataSource from '../config/data-source';
+// import { User } from '../entities/User';
+// import { DailyChecklist } from '../entities/DailyChecklist';
+// import cron from 'node-cron';
 
 // Healing plan structure for different goals
 interface HealingPlanDay {
@@ -127,7 +128,7 @@ export function getDayPlan(goal: string, day: number): HealingPlanDay | null {
 }
 
 // Function to get daily tip based on user's goal and current day
-export function getDailyTip(user: User): string {
+export function getDailyTip(user: any): string {
   const userGoal = (user.healing_goals as any)?.goal || 'liver_detox';
   const dayPlan = getDayPlan(userGoal, user.current_day);
   
@@ -148,7 +149,7 @@ export function getDailyTip(user: User): string {
 }
 
 // Function to get healing wisdom for the day
-export function getHealingWisdom(user: User): string {
+export function getHealingWisdom(user: any): string {
   const userGoal = (user.healing_goals as any)?.goal || 'liver_detox';
   const dayPlan = getDayPlan(userGoal, user.current_day);
   
@@ -169,7 +170,7 @@ export function getHealingWisdom(user: User): string {
 }
 
 // Function to get customized checklist items for the day
-export function getCustomizedChecklistItems(user: User): any {
+export function getCustomizedChecklistItems(user: any): any {
   const userGoal = (user.healing_goals as any)?.goal || 'liver_detox';
   const dayPlan = getDayPlan(userGoal, user.current_day);
   
@@ -195,48 +196,50 @@ export function getCustomizedChecklistItems(user: User): any {
 
 // Function to increment user's day and reset checklist
 export async function incrementUserDay(userId: number): Promise<void> {
-  const userRepo = AppDataSource.getRepository(User);
-  const checklistRepo = AppDataSource.getRepository(DailyChecklist);
+  // const userRepo = AppDataSource.getRepository(User);
+  // const checklistRepo = AppDataSource.getRepository(DailyChecklist);
   
-  const user = await userRepo.findOneBy({ id: userId });
-  if (!user) return;
+  // const user = await userRepo.findOneBy({ id: userId });
+  // if (!user) return;
   
   // Increment current day (max 21 days)
-  if (user.current_day < 21) {
-    user.current_day += 1;
-    await userRepo.save(user);
+  // if (user.current_day < 21) {
+  //   user.current_day += 1;
+  //   await userRepo.save(user);
     
-    // Clear today's checklist to start fresh
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+  //   // Clear today's checklist to start fresh
+  //   const today = new Date();
+  //   today.setHours(0, 0, 0, 0);
     
-    await checklistRepo.delete({
-      user: { id: userId },
-      checklist_date: today
-    });
+  //   await checklistRepo.delete({
+  //     user: { id: userId },
+  //     checklist_date: today
+  //   });
     
-    console.log(`✅ Day incremented for user ${userId} to day ${user.current_day}`);
-  } else {
-    console.log(`🎉 User ${userId} completed the 21-day journey!`);
-  }
+  //   console.log(`✅ Day incremented for user ${userId} to day ${user.current_day}`);
+  // } else {
+  //   console.log(`🎉 User ${userId} completed the 21-day journey!`);
+  // }
+  console.log(`🎉 User ${userId} completed the 21-day journey!`);
 }
 
 // Function to get all users and increment their days at midnight
 export async function incrementAllUsersDays(): Promise<void> {
-  const userRepo = AppDataSource.getRepository(User);
-  const users = await userRepo.find({ where: { is_active: true } });
+  // const userRepo = AppDataSource.getRepository(User);
+  // const users = await userRepo.find({ where: { is_active: true } });
   
-  for (const user of users) {
-    try {
-      await incrementUserDay(user.id);
-    } catch (error) {
-      console.error(`❌ Error incrementing day for user ${user.id}:`, error);
-    }
-  }
+  // for (const user of users) {
+  //   try {
+  //     await incrementUserDay(user.id);
+  //   } catch (error) {
+  //     console.error(`❌ Error incrementing day for user ${user.id}:`, error);
+  //   }
+  // }
+  console.log('🎉 All users completed the 21-day journey!');
 }
 
 // Function to get user's progress summary
-export function getUserProgressSummary(user: User): string {
+export function getUserProgressSummary(user: any): string {
   const userGoal = (user.healing_goals as any)?.goal || 'liver_detox';
   const plan = getHealingPlan(userGoal);
   
@@ -253,15 +256,15 @@ export function getUserProgressSummary(user: User): string {
 // Initialize the midnight cron job for day progression
 export function initializeDayProgression(): void {
   // Run at midnight every day
-  cron.schedule('0 0 * * *', async () => {
-    console.log('🕛 Midnight reached - incrementing all users\' days...');
-    try {
-      await incrementAllUsersDays();
-      console.log('✅ Day progression completed successfully');
-    } catch (error) {
-      console.error('❌ Error during day progression:', error);
-    }
-  });
+  // cron.schedule('0 0 * * *', async () => {
+  //   console.log('🕛 Midnight reached - incrementing all users\' days...');
+  //   try {
+  //     await incrementAllUsersDays();
+  //     console.log('✅ Day progression completed successfully');
+  //   } catch (error) {
+  //     console.error('❌ Error during day progression:', error);
+  //   }
+  // });
   
-  console.log('⏰ Day progression cron job initialized (runs at midnight)');
+  console.log('⏰ Day progression cron job initialized (runs at midnight) - DISABLED');
 } 

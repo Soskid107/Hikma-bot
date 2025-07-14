@@ -1,4 +1,5 @@
-import AppDataSource from '../config/data-source';
+// Database service disabled for local/mock-only operation
+// import AppDataSource from '../config/data-source';
 import { HerbalTip } from '../entities/HerbalTip';
 
 const fallbackHerbalTips = [
@@ -156,10 +157,10 @@ const fallbackHerbalTips = [
 
 export async function getRandomHerbalTip(): Promise<string> {
   try {
-    const repo = AppDataSource.getRepository(HerbalTip);
-    const count = await repo.count();
+    // const repo = AppDataSource.getRepository(HerbalTip);
+    // const count = await repo.count();
     
-    if (count === 0) {
+    // if (count === 0) {
       // Use fallback tips if no database entries
       const randomTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
       return `🌿 Today's Herbal Wisdom
@@ -174,23 +175,23 @@ ${randomTip.benefits.map(b => '• ' + b).join('\n')}
 
 Usage: ${randomTip.usage}
 ${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
-    }
+    // }
     
-    // Use database entries if available
-    const tips = await repo.find();
-    const tip = tips[Math.floor(Math.random() * tips.length)];
-    return `🌿 Today's Herbal Wisdom
+    // // Use database entries if available
+    // const tips = await repo.find();
+    // const tip = tips[Math.floor(Math.random() * tips.length)];
+    // return `🌿 Today's Herbal Wisdom
 
-${tip.herb_name} (${tip.scientific_name || ''})
-Local Names: ${tip.local_names ? Object.values(tip.local_names).join(', ') : 'N/A'}
+    // ${tip.herb_name} (${tip.scientific_name || ''})
+    // Local Names: ${tip.local_names ? Object.values(tip.local_names).join(', ') : 'N/A'}
 
-${tip.tip_text}
+    // ${tip.tip_text}
 
-Benefits:
-${tip.benefits ? tip.benefits.map(b => '• ' + b).join('\n') : 'N/A'}
+    // Benefits:
+    // ${tip.benefits ? tip.benefits.map(b => '• ' + b).join('\n') : 'N/A'}
 
-Usage: ${tip.usage_instructions || 'N/A'}
-${tip.precautions ? '⚠️ ' + tip.precautions : ''}`;
+    // Usage: ${tip.usage_instructions || 'N/A'}
+    // ${tip.precautions ? '⚠️ ' + tip.precautions : ''}`;
   } catch (error) {
     console.error('❌ Error fetching herbal tip:', error);
     // Return a random fallback tip on error
@@ -212,31 +213,30 @@ ${randomTip.precautions ? '⚠️ ' + randomTip.precautions : ''}`;
 
 export async function getRandomHealingTip(category?: string): Promise<HerbalTip | null> {
   try {
-    const repo = AppDataSource.getRepository(HerbalTip);
-    let tips: HerbalTip[];
-    if (category) {
-      tips = await repo.find({ where: { category } });
-    } else {
-      tips = await repo.find();
-    }
+    // const repo = AppDataSource.getRepository(HerbalTip);
+    // let tips: HerbalTip[];
+    // if (category) {
+    //   tips = await repo.find({ where: { category } });
+    // } else {
+    //   tips = await repo.find();
+    // }
     
-    if (tips.length > 0) {
-      return tips[Math.floor(Math.random() * tips.length)];
-    }
+    // if (tips.length > 0) {
+    //   return tips[Math.floor(Math.random() * tips.length)];
+    // }
     
     // If no database tips, create a fallback tip from the fallback data
     const fallbackTip = fallbackHerbalTips[Math.floor(Math.random() * fallbackHerbalTips.length)];
-    const tip = repo.create({
-      tip_text: fallbackTip.wisdom,
-      herb_name: fallbackTip.name,
-      scientific_name: fallbackTip.scientific,
-      local_names: { english: fallbackTip.local },
-      benefits: fallbackTip.benefits,
-      usage_instructions: fallbackTip.usage,
-      precautions: fallbackTip.precautions,
-      category: 'general',
-      region: 'Global'
-    });
+    const tip = new HerbalTip();
+    tip.tip_text = fallbackTip.wisdom;
+    tip.herb_name = fallbackTip.name;
+    tip.scientific_name = fallbackTip.scientific;
+    tip.local_names = { english: fallbackTip.local };
+    tip.benefits = fallbackTip.benefits;
+    tip.usage_instructions = fallbackTip.usage;
+    tip.precautions = fallbackTip.precautions;
+    tip.category = 'general';
+    tip.region = 'Global';
     
     return tip;
   } catch (error) {
@@ -259,12 +259,14 @@ export async function getRandomHealingTip(category?: string): Promise<HerbalTip 
 } 
 
 export async function addHerbalTip(tip_text: string): Promise<HerbalTip> {
-  const repo = AppDataSource.getRepository(HerbalTip);
-  const tip = repo.create({
-    tip_text,
-    herb_name: 'General',
-    category: 'general',
-    region: 'West Africa',
-  });
-  return await repo.save(tip);
+  // const repo = AppDataSource.getRepository(HerbalTip);
+  // const tip = repo.create({
+  //   tip_text,
+  //   herb_name: 'General',
+  //   category: 'general',
+  //   region: 'West Africa',
+  // });
+  // return await repo.save(tip);
+  console.warn('addHerbalTip is disabled for local/mock-only operation.');
+  return new HerbalTip(); // Return a dummy object
 } 

@@ -1,6 +1,5 @@
 import { IncomingMessage, ServerResponse } from 'http';
 import 'dotenv/config';
-import AppDataSource from '../src/config/data-source';
 import { bot } from '../src/services/botService';
 
 // TypeScript declaration for global variable
@@ -23,20 +22,11 @@ function validateEnvironment(): boolean {
   return true;
 }
 
-// Initialize database connection with proper pooling for serverless
+// Mock database initialization (no database needed)
 async function initializeDatabase(): Promise<boolean> {
   if (!global.dbInitialized) {
-    try {
-      if (!AppDataSource.isInitialized) {
-        await AppDataSource.initialize();
-        console.log('✅ Database initialized');
-      }
-      global.dbInitialized = true;
-    } catch (error) {
-      console.error('❌ Database initialization error:', error);
-      // Don't throw error, just log it for serverless environment
-      return false;
-    }
+    console.log('✅ Using mock database (no external database needed)');
+    global.dbInitialized = true;
   }
   return true;
 }
@@ -102,8 +92,17 @@ export default async function handler(req: IncomingMessage, res: ServerResponse)
     if (!global.handlersLoaded) {
       require('../src/handlers/commandHandlers');
       require('../src/handlers/callbackHandlers');
+      require('../src/handlers/onboardingHandlers');
+      require('../src/handlers/journalHandlers');
+      require('../src/handlers/settingsHandlers');
+      require('../src/handlers/wisdomHandlers');
+      require('../src/handlers/herbalHandlers');
+      require('../src/handlers/healthHandlers');
+      require('../src/handlers/healingPlanHandlers');
+      require('../src/handlers/checklistHandlers');
+      require('../src/handlers/healingTipHandlers');
       global.handlersLoaded = true;
-      console.log('✅ Handlers loaded');
+      console.log('✅ All handlers loaded');
     }
 
     // Parse request body

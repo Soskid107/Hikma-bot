@@ -7,16 +7,15 @@ import { ScheduledMessage } from '../entities/ScheduledMessage';
 import { UserInteraction } from '../entities/UserInteraction';
 import { WisdomQuote } from '../entities/WisdomQuote';
 import { HerbalTip } from '../entities/HerbalTip';
-// import other entities as you add them
 
 const AppDataSource = new DataSource({
   type: 'postgres',
-  url: process.env.POSTGRES_URL || process.env.STORAGE_URL || process.env.DATABASE_URL, // Use POSTGRES_URL for Vercel Neon integration
-  host: process.env.DB_HOST || 'localhost',
-  port: Number(process.env.DB_PORT) || 5432,
-  username: process.env.DB_USERNAME || 'hikma_user',
-  password: process.env.DB_PASSWORD || 'secure_password',
-  database: process.env.DB_NAME || 'hikma_db',
+  url: process.env.DATABASE_URL,
+  host: process.env.DB_HOST,
+  port: process.env.DB_PORT ? parseInt(process.env.DB_PORT) : 5432,
+  username: process.env.DB_USERNAME,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
   entities: [
     User,
     DailyChecklist,
@@ -27,9 +26,9 @@ const AppDataSource = new DataSource({
     WisdomQuote,
     HerbalTip
   ],
-  synchronize: process.env.NODE_ENV !== 'production', // Only sync in development
-  logging: process.env.NODE_ENV !== 'production',
-  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+  synchronize: false, // Use migrations!
+  logging: false,
+  migrations: [__dirname + '/../migrations/*.ts'],
 });
 
 export default AppDataSource;

@@ -1,7 +1,7 @@
 
 import { bot } from '../services/botService';
-import { findOrCreateUser } from '../services/userService';
-import { listJournalEntries, getJournalEntryById, updateJournalEntryById, saveJournalEntry, deleteJournalEntryById } from '../services/journalService';
+import { findOrCreateUser } from '../services/mockUserService';
+import { listJournalEntries, getJournalEntryById, updateJournalEntryById, saveJournalEntry, deleteJournalEntryById } from '../services/mockServices';
 import { setUserState, clearUserState, UserState } from '../services/stateService';
 import { mainMenuKeyboard, journalMenuKeyboard, journalEditCancelKeyboard, journalDeleteConfirmKeyboard, journalDeleteBackKeyboard, journalHistoryKeyboard } from './ui';
 import { Markup } from 'telegraf';

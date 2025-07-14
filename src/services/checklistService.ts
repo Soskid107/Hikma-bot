@@ -1,3 +1,4 @@
+// Database service disabled for local/mock-only operation
 import AppDataSource from '../config/data-source';
 import { DailyChecklist } from '../entities/DailyChecklist';
 import { User } from '../entities/User';

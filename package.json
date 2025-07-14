@@ -6,7 +6,7 @@
   "scripts": {
     "start": "ts-node src/app.ts",
     "dev": "ts-node src/app.ts",
-    "typeorm": "typeorm-ts-node-commonjs",
+    "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/InitialMigration",
     "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
     "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts"
@@ -44,6 +44,7 @@
     "@types/express": "^5.0.3",
     "@vercel/node": "^5.3.4",
     "ts-node": "^10.9.2",
+    "tsconfig-paths": "^4.2.0",
     "typeorm": "^0.3.25"
   }
 }

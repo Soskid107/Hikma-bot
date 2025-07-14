@@ -8,8 +8,12 @@ import { handleError } from '../utils/errorHandler';
 // Settings menu
 bot.action('menu_settings', async (ctx) => {
   try {
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
     let lang: SupportedLang = 'en';
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     if (supportedLangs.includes(user['language_preference'] as SupportedLang)) {
       lang = user['language_preference'] as SupportedLang;
     }
@@ -23,7 +27,11 @@ bot.action('menu_settings', async (ctx) => {
 // Notification settings
 bot.action('settings_notifications', async (ctx) => {
   try {
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     const settings = user.notification_settings as any || {};
     const notificationMsg = `🔔 **Notification Settings**
 
@@ -60,7 +68,11 @@ Choose an option to modify:`;
 // Profile settings
 bot.action('settings_profile', async (ctx) => {
   try {
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     const profileMsg = `👤 **Profile Settings**
 
 Current Profile:
@@ -96,7 +108,11 @@ Choose an option to modify:`;
 // Toggle notifications
 bot.action('toggle_notifications', async (ctx) => {
   try {
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     const settings = { ...user.notification_settings, enabled: !(user.notification_settings as any)?.enabled };
     await updateNotificationSettings(user.id, settings);
     const status = settings.enabled ? '✅ Enabled' : '❌ Disabled';
@@ -147,10 +163,14 @@ bot.action('reset_progress', async (ctx) => {
 // Confirm reset progress
 bot.action('confirm_reset_progress', async (ctx) => {
   try {
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     user.current_day = 1;
-    const userRepo = require('../config/data-source').default.getRepository(require('../entities/User').User);
-    await userRepo.save(user);
+          // Database save disabled for local/mock-only operation
+      console.log('Settings updated (mock mode)');
     
     await ctx.editMessageText('✅ Progress reset successfully! You are now back to Day 1.', {
       parse_mode: 'Markdown',
@@ -199,7 +219,11 @@ bot.action(/^set_language_(en|fr|ar|sw)$/, async (ctx) => {
       handleError(ctx, new Error('Language not found in callback data.'), 'Error setting language.');
       return;
     }
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     await updateUserLanguage(user.id, lang);
     let langName = 'English';
     if (lang === 'fr') langName = 'Français';
@@ -238,7 +262,11 @@ bot.action(/^set_reminder_time_(\d{2}:\d{2})$/, async (ctx) => {
       handleError(ctx, new Error('Time not found in callback data.'), 'Error setting reminder time.');
       return;
     }
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     const settings = { ...user.notification_settings, reminder_time: time };
     await updateNotificationSettings(user.id, settings);
     await ctx.editMessageText(`✅ Checklist reminder time set to *${time}*`, {
@@ -289,7 +317,11 @@ bot.action(/^set_tip_interval_(daily|2d|weekly)$/, async (ctx) => {
     }
     if (interval === '2d') interval = 'every 2 days';
     if (interval === 'weekly') interval = 'weekly';
-    const user = await findOrCreateUser(ctx.from);
+    const user: any = await findOrCreateUser(ctx.from);
+    if (!user) {
+      await ctx.reply('User not found.');
+      return;
+    }
     const settings = { ...user.notification_settings, tip_interval: interval };
     await updateNotificationSettings(user.id, settings);
     await ctx.editMessageText(`✅ Healing tip interval set to *${interval}*`, {
