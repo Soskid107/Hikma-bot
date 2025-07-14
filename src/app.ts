@@ -10,6 +10,14 @@ import { getOrCreateTodayChecklist } from './services/db/checklistService';
 import { getRandomHealingTip } from './services/db/healingTipService';
 
 
+// Global error logging
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught Exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection:', reason);
+});
+
 // Helper to parse time string (HH:MM) to cron format
 function timeToCron(time: string) {
   const [hour, minute] = time.split(':').map(Number);
