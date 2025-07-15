@@ -2,7 +2,7 @@ import { bot } from '../services/botService';
 import { findOrCreateUser } from '../services/userService';
 import { getRandomWisdomQuote, getWisdomByCategory } from '../services/wisdomService';
 import { wisdomMenuKeyboard } from './ui';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 // Wisdom quote: Teach Me More
 bot.action('wisdom_teach_me_more', async (ctx) => {
@@ -13,10 +13,10 @@ bot.action('wisdom_teach_me_more', async (ctx) => {
     
     const quote = await getRandomWisdomQuote();
     
-    await ctx.editMessageText(`📜 Wisdom Quote:\n${quote}`, { reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.editMessageText(`📜 Wisdom Quote:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Here is more wisdom!');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching wisdom quote.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -29,10 +29,10 @@ bot.action('wisdom_healing', async (ctx) => {
     
     const quote = await getWisdomByCategory('healing');
     
-    await ctx.editMessageText(`🌿 Healing Wisdom:\n${quote}`, { reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.editMessageText(`🌿 Healing Wisdom:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Healing wisdom for you!');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching healing wisdom.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -44,10 +44,10 @@ bot.action('wisdom_spiritual', async (ctx) => {
     
     const quote = await getWisdomByCategory('spiritual');
     
-    await ctx.editMessageText(`🧘 Spiritual Wisdom:\n${quote}`, { reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.editMessageText(`🧘 Spiritual Wisdom:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Spiritual wisdom for you!');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching spiritual wisdom.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -59,9 +59,9 @@ bot.action('wisdom_philosophy', async (ctx) => {
     
     const quote = await getWisdomByCategory('philosophy');
     
-    await ctx.editMessageText(`💭 Philosophical Wisdom:\n${quote}`, { reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.editMessageText(`💭 Philosophical Wisdom:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Philosophical wisdom for you!');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching philosophical wisdom.');
+    handleBotError(ctx, error);
   }
 });

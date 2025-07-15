@@ -2,6 +2,7 @@ import { bot } from '../services/botService';
 import { getRandomHealingTip } from '../services/herbalService';
 import { healingMenuKeyboard } from './ui';
 import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 bot.action('healingtip_another', async (ctx) => {
   try {
@@ -25,12 +26,9 @@ ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
     const timestamp = new Date().toLocaleTimeString();
     tipText += `\n\n🕐 Generated at ${timestamp}`;
     
-    await ctx.editMessageText(tipText, { 
-      parse_mode: 'Markdown', 
-      reply_markup: healingMenuKeyboard.reply_markup 
-    });
+    await ctx.editMessageText(tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('New healing tip provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching healing tip.');
+    handleBotError(ctx, error);
   }
 });

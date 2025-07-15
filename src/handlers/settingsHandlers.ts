@@ -3,7 +3,7 @@ import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from
 import { setUserState, clearUserState, UserState } from '../services/stateService';
 import { mainMenuKeyboard, settingsMenuKeyboard, settingsLanguageKeyboard, settingsReminderTimeKeyboard, settingsTipIntervalKeyboard, backToSettingsKeyboard, cancelCustomInputKeyboard, cancelCustomTipInputKeyboard } from './ui';
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 // Settings menu
 bot.action('menu_settings', async (ctx) => {
@@ -17,10 +17,10 @@ bot.action('menu_settings', async (ctx) => {
     if (supportedLangs.includes(user['language_preference'] as SupportedLang)) {
       lang = user['language_preference'] as SupportedLang;
     }
-    await ctx.editMessageText('⚙️ **Settings**\n\nUpdate your preferences below:', { reply_markup: settingsMenuKeyboard.reply_markup });
+    await ctx.editMessageText('⚙️ **Settings**\n\nUpdate your preferences below:', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Settings loaded');
   } catch (error) {
-    handleError(ctx, error, 'Error loading settings menu.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -45,7 +45,7 @@ Choose an option to modify:`;
     await ctx.editMessageText(notificationMsg, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Notification settings loaded');
   } catch (error) {
-    handleError(ctx, error, 'Error loading notification settings.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -69,7 +69,7 @@ Choose an option to modify:`;
     await ctx.editMessageText(profileMsg, { reply_markup: { inline_keyboard: [ [ { text: '🌐 Change Language', callback_data: 'settings_language' }, { text: '🎯 Update Healing Goals', callback_data: 'update_healing_goals' } ], [ { text: '🔙 Back', callback_data: 'menu_settings' } ] ] } });
     await ctx.answerCbQuery('Profile settings loaded');
   } catch (error) {
-    handleError(ctx, error, 'Error loading profile settings.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -87,7 +87,7 @@ bot.action('toggle_notifications', async (ctx) => {
     await ctx.editMessageText(`🔔 Notifications ${status}`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery(`Notifications ${settings.enabled ? 'enabled' : 'disabled'}`);
   } catch (error) {
-    handleError(ctx, error, 'Error toggling notifications.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -101,7 +101,7 @@ bot.action('update_healing_goals', async (ctx) => {
     await ctx.editMessageText('🎯 Please type your new healing goals:');
     await ctx.answerCbQuery('Update healing goals');
   } catch (error) {
-    handleError(ctx, error, 'Error updating healing goals.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -111,7 +111,7 @@ bot.action('reset_progress', async (ctx) => {
     await ctx.editMessageText('⚠️ **Reset Progress**\n\nThis will reset your current day and progress tracking. Are you sure?', { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Reset progress confirmation');
   } catch (error) {
-    handleError(ctx, error, 'Error showing reset confirmation.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -130,7 +130,7 @@ bot.action('confirm_reset_progress', async (ctx) => {
     await ctx.editMessageText('✅ Progress reset successfully! You are now back to Day 1.', { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Progress reset');
   } catch (error) {
-    handleError(ctx, error, 'Error resetting progress.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -144,7 +144,7 @@ bot.action('send_feedback', async (ctx) => {
     await ctx.editMessageText('✉️ Please type your feedback below.');
     await ctx.answerCbQuery('Send feedback');
   } catch (error) {
-    handleError(ctx, error, 'Error sending feedback.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -154,7 +154,7 @@ bot.action('settings_language', async (ctx) => {
     await ctx.editMessageText('🌐 *Choose your language / Choisissez votre langue / اختر لغتك / Chagua lugha yako*', { reply_markup: settingsLanguageKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error loading language settings.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -165,7 +165,7 @@ bot.action(/^set_language_(en|fr|ar|sw)$/, async (ctx) => {
     if (!userId) return;
     const lang = ctx.match?.[1];
     if (!lang) {
-      handleError(ctx, new Error('Language not found in callback data.'), 'Error setting language.');
+      handleBotError(ctx, 'Language not found in callback data.');
       return;
     }
     const user: any = await findOrCreateUser(ctx.from);
@@ -181,7 +181,7 @@ bot.action(/^set_language_(en|fr|ar|sw)$/, async (ctx) => {
     await ctx.editMessageText(`🌐 Language set to *${langName}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error setting language.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -191,7 +191,7 @@ bot.action('settings_reminder_time', async (ctx) => {
     await ctx.editMessageText('⏰ *Choose your daily checklist reminder time:*', { reply_markup: settingsReminderTimeKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error loading reminder time settings.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -202,7 +202,7 @@ bot.action(/^set_reminder_time_(\d{2}:\d{2})$/, async (ctx) => {
     if (!userId) return;
     const time = ctx.match?.[1];
     if (!time) {
-      handleError(ctx, new Error('Time not found in callback data.'), 'Error setting reminder time.');
+      handleBotError(ctx, 'Time not found in callback data.');
       return;
     }
     const user: any = await findOrCreateUser(ctx.from);
@@ -215,7 +215,7 @@ bot.action(/^set_reminder_time_(\d{2}:\d{2})$/, async (ctx) => {
     await ctx.editMessageText(`✅ Checklist reminder time set to *${time}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error setting reminder time.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -228,7 +228,7 @@ bot.action('set_reminder_time_custom', async (ctx) => {
     await ctx.editMessageText('⏰ Please type your preferred reminder time in 24h format (e.g., 07:30):', { reply_markup: cancelCustomInputKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error prompting for custom reminder time.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -238,7 +238,7 @@ bot.action('settings_tip_interval', async (ctx) => {
     await ctx.editMessageText('💡 *How often do you want to receive healing tips?*', { reply_markup: settingsTipIntervalKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error loading tip interval settings.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -249,7 +249,7 @@ bot.action(/^set_tip_interval_(daily|2d|weekly)$/, async (ctx) => {
     if (!userId) return;
     let interval = ctx.match?.[1];
     if (!interval) {
-      handleError(ctx, new Error('Interval not found in callback data.'), 'Error setting tip interval.');
+      handleBotError(ctx, 'Interval not found in callback data.');
       return;
     }
     if (interval === '2d') interval = 'every 2 days';
@@ -264,7 +264,7 @@ bot.action(/^set_tip_interval_(daily|2d|weekly)$/, async (ctx) => {
     await ctx.editMessageText(`✅ Healing tip interval set to *${interval}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error setting tip interval.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -278,6 +278,6 @@ bot.action('set_tip_interval_custom', async (ctx) => {
     await ctx.editMessageText('💡 Please type your preferred healing tip interval (e.g., "every 3 days", "every 12 hours"): ', { reply_markup: cancelCustomTipInputKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error prompting for custom tip interval.');
+    handleBotError(ctx, error);
   }
 });

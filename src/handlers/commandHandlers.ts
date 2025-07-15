@@ -12,7 +12,7 @@ import { isAdmin } from '../config/admin';
 import { mainMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, wisdomMenuKeyboard, checklistMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, healingMenuKeyboard } from './ui';
 import AppDataSource from '../config/data-source';
 import { User } from '../entities/User';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 import { HerbalTip } from '../entities/HerbalTip';
 
 const supportedLangs = ['en', 'fr', 'ar', 'sw'] as const;
@@ -37,10 +37,7 @@ bot.command('start', async (ctx) => {
       // Existing user - show main menu directly
       const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
 
-      await ctx.reply(mainMenu, {
-        parse_mode: 'Markdown',
-        reply_markup: mainMenuKeyboard.reply_markup
-      });
+      await ctx.editMessageText(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
     } else {
       // New user - show onboarding
       const welcomeMessage = `🕯️ Welcome to Hikma - Your Healing Journey Begins!
@@ -51,20 +48,10 @@ I am Hikma, your companion on a 21-day healing journey inspired by the wisdom of
 
 Ready to begin your transformation?`;
 
-      await ctx.reply(welcomeMessage, {
-        parse_mode: 'Markdown',
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' },
-              { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' }
-            ]
-          ]
-        }
-      });
+      await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' }, { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' } ] ] } });
     }
   } catch (error) {
-    handleError(ctx, error, 'Sorry, there was an error registering you. Please try again later.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -100,7 +87,7 @@ bot.command('menu', async (ctx) => {
       }
     });
   } catch (error) {
-    handleError(ctx, error, '❌ Error loading main menu. Please try again.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -115,10 +102,7 @@ bot.action('onboarding_ready', async (ctx) => {
       const firstName = user.first_name || 'friend';
       const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
 
-      await ctx.editMessageText(mainMenu, {
-        parse_mode: 'Markdown',
-        reply_markup: mainMenuKeyboard.reply_markup
-      });
+      await ctx.editMessageText(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
       await ctx.answerCbQuery('Welcome back!');
     } else {
       // New user - ask for healing goals
@@ -126,49 +110,21 @@ bot.action('onboarding_ready', async (ctx) => {
       if (userId) {
         setUserState(userId, UserState.AWAITING_HEALING_GOALS);
       }
-      await ctx.editMessageText('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', {
-        parse_mode: 'Markdown',
-        reply_markup: undefined
-      });
+      await ctx.editMessageText('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', { parse_mode: 'Markdown', reply_markup: undefined });
       await ctx.answerCbQuery();
     }
   } catch (error) {
-    handleError(ctx, error, 'Error during onboarding ready action.');
+    handleBotError(ctx, error);
   }
 });
 
 // Add onboarding_learn_more callback
 bot.action('onboarding_learn_more', async (ctx) => {
   try {
-    await ctx.editMessageText(`🕯️ About Hikma - Your Healing Companion
-
-I am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:
-
-🌿 Traditional Herbal Medicine
-🧘 Spiritual Wellness
-💭 Philosophical Reflection
-📝 Mindful Journaling
-📋 Daily Healing Rituals
-
-This 21-day journey will help you:
-• Establish healthy daily routines
-• Learn about natural healing methods
-• Reflect on your spiritual and physical well-being
-• Build lasting wellness habits
-
-Ready to begin your transformation?`, {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' }
-          ]
-        ]
-      }
-    });
+    await ctx.editMessageText('🕯️ About Hikma - Your Healing Companion\n\nI am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:\n\n🌿 Traditional Herbal Medicine\n🧘 Spiritual Wellness\n💭 Philosophical Reflection\n📝 Mindful Journaling\n📋 Daily Healing Rituals\n\nThis 21-day journey will help you:\n• Establish healthy daily routines\n• Learn about natural healing methods\n• Reflect on your spiritual and physical well-being\n• Build lasting wellness habits\n\nReady to begin your transformation?', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' } ] ] } });
     ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error during onboarding learn more action.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -184,9 +140,9 @@ async function sendWisdomQuote(ctx: any) {
     if (!quote || quote.includes('Could not fetch')) {
       quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
     }
-    ctx.reply(`📜 Wisdom Quote:\n${quote}`, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.editMessageText('📜 Wisdom Quote:\n' + quote, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Error sending wisdom quote.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -217,9 +173,9 @@ Morning Rituals:
 
 Progress: ${progressBar} ${checklist.completion_percentage}% Complete
 `;
-    ctx.reply(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
+    await ctx.editMessageText('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Sorry, there was an error fetching your checklist. Please try again later.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -235,9 +191,9 @@ bot.command('checklist', async (ctx) => {
 async function sendHerbalTip(ctx: any) {
   try {
     const tipText = await getRandomHerbalTip();
-    ctx.reply(tipText, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
+    await ctx.editMessageText('🌿 Herbal Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Sorry, there was an error fetching a herbal tip. Please try again later.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -251,9 +207,9 @@ bot.command('herbtip', async (ctx) => {
 
 async function sendJournalMenu(ctx: any) {
   try {
-    await ctx.reply('📝 Journal Menu:\nWhat would you like to do?', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
+    await ctx.editMessageText('📝 Journal Menu:\nWhat would you like to do?', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Error sending journal menu.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -277,9 +233,9 @@ async function sendHealthGuidance(ctx: any) {
     
     const symptom = args.join(' ');
     const guidance = await getHealthGuidance(symptom);
-    ctx.reply(guidance, { parse_mode: 'Markdown' });
+    await ctx.editMessageText('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Error sending health guidance.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -309,9 +265,9 @@ ${tipObj.usage_instructions ? `**Usage:** ${tipObj.usage_instructions}` : ''}
 ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
     }
     
-    ctx.reply(tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
+    await ctx.editMessageText('💡 Healing Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Error sending healing tip.');
+    handleBotError(ctx, error);
   }
 }
 
@@ -358,7 +314,7 @@ bot.command('healingplan', async (ctx) => {
     };
     showPage(page);
   } catch (error) {
-    handleError(ctx, error, 'Error generating healing plan.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -367,7 +323,7 @@ bot.hears('🗓️ Healing Plan', async (ctx) => {
   try {
     ctx.telegram.sendMessage(ctx.chat.id, '/healingplan');
   } catch (error) {
-    handleError(ctx, error, 'Error sending healing plan command.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -378,7 +334,7 @@ bot.hears("📋 Today's Checklist", async (ctx) => {
   try {
     await sendChecklist(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending checklist.');
+  handleBotError(ctx, error);
   }
 });
 
@@ -386,7 +342,7 @@ bot.hears('📜 Wisdom Quote', async (ctx) => {
   try {
     await sendWisdomQuote(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending wisdom quote.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -394,7 +350,7 @@ bot.hears('🌿 Herbal Tips', async (ctx) => {
   try {
     await sendHerbalTip(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending herbal tip.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -402,7 +358,7 @@ bot.hears('🏥 Health Guidance', async (ctx) => {
   try {
     await sendHealthGuidance(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending health guidance.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -410,7 +366,7 @@ bot.hears('📝 Journal', async (ctx) => {
   try {
     await sendJournalMenu(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending journal menu.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -418,7 +374,7 @@ bot.hears('💡 Healing Tip', async (ctx) => {
   try {
     await sendHealingTip(ctx);
   } catch (error) {
-    handleError(ctx, error, 'Error sending healing tip.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -428,9 +384,9 @@ async function sendSettingsMenu(ctx: any) {
   try {
     const user = await findOrCreateUser(ctx.from);
     
-    await ctx.reply('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { reply_markup: settingsMenuKeyboard });
+    await ctx.editMessageText('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, '❌ Error in settings:');
+    handleBotError(ctx, error);
   }
 }
 
@@ -457,7 +413,7 @@ bot.command('addtip', async (ctx) => {
     setUserState(userId, UserState.AWAITING_TIP_INPUT);
     ctx.reply('📝 Please send the healing tip text you want to add.');
   } catch (error) {
-    handleError(ctx, error, 'Error adding tip.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -477,9 +433,9 @@ bot.command('mystats', async (ctx) => {
       `🏅 Longest Streak: ${progress.longest_streak} days\n` +
       `✅ Days Completed: ${progress.total_days_completed}\n` +
       `📖 Journal Entries: ${journalCount}`;
-    ctx.reply(statsMsg, { parse_mode: 'Markdown' });
+    await ctx.editMessageText(statsMsg, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
   } catch (error) {
-    handleError(ctx, error, 'Error fetching stats.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -487,7 +443,7 @@ bot.hears('📊 My Stats', async (ctx) => {
   try {
     ctx.telegram.sendMessage(ctx.chat.id, '/mystats');
   } catch (error) {
-    handleError(ctx, error, 'Error sending mystats command.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -529,7 +485,7 @@ bot.on('text', async (ctx) => {
         parse_mode: 'Markdown'
       });
     } catch (error) {
-      handleError(ctx, error, 'Error saving your healing goals. Please try again.');
+      handleBotError(ctx, error);
     }
   }
 });

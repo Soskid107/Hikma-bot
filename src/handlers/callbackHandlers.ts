@@ -16,6 +16,7 @@ import { setUserState, getUserState, clearUserState, UserState } from '../servic
 import { getRandomWisdomQuote, getRandomHerbalTip, getRandomHealingTip, saveJournalEntry, countJournalEntries } from '../services/mockServices';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
 import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/mockUserService';
+import { handleBotError } from '../utils/errorHandler';
 
 const adminIds = (process.env.ADMIN_USER_IDS || '').split(',').map(id => id.trim()).filter(Boolean).map(Number);
 
@@ -48,7 +49,7 @@ bot.action('back_to_main_menu', async (ctx) => {
     });
     await ctx.answerCbQuery('Back to main menu');
   } catch (error) {
-    handleError(ctx, error, 'Error returning to main menu.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -67,7 +68,7 @@ bot.action('wisdom_quote', async (ctx) => {
       await ctx.answerCbQuery('Wisdom quote provided');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error sending wisdom quote.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -92,7 +93,7 @@ ${tipObj.benefits.map((b: string) => '• ' + b).join('\n')}
       await ctx.answerCbQuery('Herbal tip provided');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error sending herbal tip.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -106,7 +107,7 @@ bot.action('journal_menu', async (ctx) => {
       await ctx.answerCbQuery('Journal menu loaded');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error sending journal menu.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -136,7 +137,7 @@ ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
       await ctx.answerCbQuery('Healing tip provided');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error sending healing tip.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -167,14 +168,11 @@ ${progressBar} ${checklist.completion_percentage}% Complete
 
 💡 **Today's Tip:** ${dailyTip}
 `;
-      await ctx.editMessageText(checklistMsg, { 
-        parse_mode: 'Markdown', 
-        reply_markup: checklistMenuKeyboard(checklist).reply_markup 
-      });
+      await ctx.editMessageText(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
       await ctx.answerCbQuery('Checklist loaded');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error loading checklist.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -200,7 +198,7 @@ Example: /health headache
       await ctx.answerCbQuery('Health menu loaded');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error loading health menu.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -219,14 +217,11 @@ bot.action('my_stats', async (ctx) => {
         `🏅 Longest Streak: ${progress.longest_streak} days\n` +
         `✅ Days Completed: ${progress.total_days_completed}\n` +
         `📖 Journal Entries: ${journalCount}`;
-      await ctx.editMessageText(statsMsg, { 
-        parse_mode: 'Markdown',
-        reply_markup: mainMenuKeyboard.reply_markup 
-      });
+      await ctx.editMessageText(statsMsg, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
       await ctx.answerCbQuery('Stats loaded');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error fetching stats.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -234,13 +229,11 @@ bot.action('settings_menu', async (ctx) => {
   try {
     await retryOperation(async () => {
       const user = await findOrCreateUser(ctx.from);
-      await ctx.editMessageText('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { 
-        reply_markup: settingsMenuKeyboard.reply_markup 
-      });
+      await ctx.editMessageText('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
       await ctx.answerCbQuery('Settings menu loaded');
     });
   } catch (error) {
-    handleError(ctx, error, 'Error loading settings menu.');
+    handleBotError(ctx, error);
   }
 });
 

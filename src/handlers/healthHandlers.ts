@@ -1,55 +1,55 @@
 import { bot } from '../services/botService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
 import { healthMenuKeyboard } from './ui';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 bot.action('health_headache', async (ctx) => {
   try {
     const guidance = await getHealthGuidance('headache');
-    await ctx.editMessageText(guidance, { reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.editMessageText(guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Headache guidance provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching headache guidance.');
+    handleBotError(ctx, error);
   }
 });
 
 bot.action('health_fatigue', async (ctx) => {
   try {
     const guidance = await getHealthGuidance('fatigue');
-    await ctx.editMessageText(guidance, { reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.editMessageText(guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Fatigue guidance provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching fatigue guidance.');
+    handleBotError(ctx, error);
   }
 });
 
 bot.action('health_digestive_issues', async (ctx) => {
   try {
     const guidance = await getHealthGuidance('digestive_issues');
-    await ctx.editMessageText(guidance, { reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.editMessageText(guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Digestive issues guidance provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching digestive issues guidance.');
+    handleBotError(ctx, error);
   }
 });
 
 bot.action('health_sleep_problems', async (ctx) => {
   try {
     const guidance = await getHealthGuidance('sleep_problems');
-    await ctx.editMessageText(guidance, { reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.editMessageText(guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Sleep problems guidance provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching sleep problems guidance.');
+    handleBotError(ctx, error);
   }
 });
 
 bot.action('health_stress_anxiety', async (ctx) => {
   try {
     const guidance = await getHealthGuidance('stress_anxiety');
-    await ctx.editMessageText(guidance, { reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.editMessageText(guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Stress & anxiety guidance provided');
   } catch (error) {
-    handleError(ctx, error, 'Error fetching stress & anxiety guidance.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -61,6 +61,6 @@ bot.action('health_menu', async (ctx) => {
     });
     await ctx.answerCbQuery('Health menu loaded');
   } catch (error) {
-    handleError(ctx, error, 'Error loading health menu.');
+    handleBotError(ctx, error);
   }
 });

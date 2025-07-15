@@ -3,7 +3,7 @@ import { findOrCreateUser } from '../services/userService';
 import { getOrCreateTodayChecklist, updateChecklistItem } from '../services/checklistService';
 import { getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/healingPlanService';
 import { checklistMenuKeyboard } from './ui';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 async function handleChecklistToggle(ctx: any, item: string) {
   const chatId = ctx.chat?.id;
@@ -42,10 +42,7 @@ ${progressBar} ${updatedChecklist.completion_percentage}% Complete
 💡 **Today's Tip:** ${dailyTip}
 `;
     
-    await ctx.editMessageText(checklistMsg, { 
-      parse_mode: 'Markdown', 
-      reply_markup: checklistMenuKeyboard(updatedChecklist).reply_markup 
-    });
+    await ctx.editMessageText(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(updatedChecklist).reply_markup });
     
     await ctx.answerCbQuery('Checklist updated!');
     
@@ -55,7 +52,7 @@ ${progressBar} ${updatedChecklist.completion_percentage}% Complete
       });
     }
   } catch (error) {
-    handleError(ctx, error, 'Error updating checklist.');
+    handleBotError(ctx, error);
   }
 }
 

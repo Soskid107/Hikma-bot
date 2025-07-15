@@ -6,7 +6,7 @@ import { setUserState, clearUserState, UserState } from '../services/stateServic
 import { mainMenuKeyboard, journalMenuKeyboard, journalEditCancelKeyboard, journalDeleteConfirmKeyboard, journalDeleteBackKeyboard, journalHistoryKeyboard } from './ui';
 import { Markup } from 'telegraf';
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
-import { handleError } from '../utils/errorHandler';
+import { handleError, handleBotError } from '../utils/errorHandler';
 
 const affirmations = [
   '🌅 Every reflection is a step toward healing. Keep going! 🕯️',
@@ -34,14 +34,14 @@ bot.action(/^journal_history(?:_(\d+))?$/, async (ctx) => {
     const { entries, total } = await listJournalEntries(user, page, pageSize);
     const totalPages = Math.ceil(total / pageSize);
     if (entries.length === 0) {
-      await ctx.editMessageText('No journal entries found.', { reply_markup: journalMenuKeyboard.reply_markup });
+      await ctx.editMessageText('No journal entries found.', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
       return;
     }
     const entryList = entries.map(e => `🗓️ ${e.entry_date.toLocaleDateString()}\n${e.entry_text?.slice(0, 40) || ''}...`).join('\n\n');
     await ctx.editMessageText(`📖 **Your Journal History**\n\n${entryList}`, { parse_mode: 'Markdown', reply_markup: journalHistoryKeyboard(page, totalPages, entries).reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error fetching journal history.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -51,7 +51,7 @@ bot.action(/^journal_view_(\d+)$/, async (ctx) => {
     const user = await findOrCreateUser(ctx.from);
     const entryId = parseInt(ctx.match?.[1], 10);
     if (isNaN(entryId)) {
-      handleError(ctx, new Error('Invalid entry ID.'), 'Error viewing journal entry.');
+      handleBotError(ctx, 'Invalid entry ID.');
       return;
     }
     const entry = await getJournalEntryById(user, entryId);
@@ -59,17 +59,14 @@ bot.action(/^journal_view_(\d+)$/, async (ctx) => {
       await ctx.answerCbQuery('Entry not found.');
       return;
     }
-    await ctx.editMessageText(`🗓️ ${new Date(entry.entry_date).toLocaleDateString()}\n\n${entry.entry_text || ''}`, {
-      parse_mode: 'Markdown',
-      reply_markup: Markup.inlineKeyboard([
+    await ctx.editMessageText(`🗓️ ${new Date(entry.entry_date).toLocaleDateString()}\n\n${entry.entry_text || ''}`, { parse_mode: 'Markdown', reply_markup: Markup.inlineKeyboard([
         [Markup.button.callback('✏️ Edit', `journal_edit_${entry.id}`), Markup.button.callback('🗑️ Delete', `journal_delete_${entry.id}`)],
         [Markup.button.callback('⬅️ Back to History', 'journal_history_1')],
         [Markup.button.callback('🏠 Back to Main Menu', 'back_to_main_menu')]
-      ]).reply_markup
-    });
+      ]).reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error viewing journal entry.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -78,7 +75,7 @@ bot.action(/^journal_edit_(\d+)$/, async (ctx) => {
   try {
     const entryId = parseInt(ctx.match?.[1], 10);
     if (isNaN(entryId)) {
-      handleError(ctx, new Error('Invalid entry ID.'), 'Error starting journal edit.');
+      handleBotError(ctx, 'Invalid entry ID.');
       return;
     }
     const userId = ctx.from?.id;
@@ -87,7 +84,7 @@ bot.action(/^journal_edit_(\d+)$/, async (ctx) => {
     await ctx.editMessageText('✏️ Please send the new text for your journal entry.\n\n❌ To cancel, type "cancel"', { parse_mode: 'Markdown', reply_markup: journalEditCancelKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error starting journal edit.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -96,7 +93,7 @@ bot.action(/^journal_delete_(\d+)$/, async (ctx) => {
   try {
     const entryId = parseInt(ctx.match?.[1], 10);
     if (isNaN(entryId)) {
-      handleError(ctx, new Error('Invalid entry ID.'), 'Error confirming journal deletion.');
+      handleBotError(ctx, 'Invalid entry ID.');
       return;
     }
     const user = (await findOrCreateUser(ctx.from));
@@ -107,7 +104,7 @@ bot.action(/^journal_delete_(\d+)$/, async (ctx) => {
     await ctx.editMessageText('Are you sure you want to delete this entry?', { parse_mode: 'Markdown', reply_markup: journalDeleteConfirmKeyboard(entryId).reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error confirming journal deletion.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -121,7 +118,7 @@ bot.action(/^journal_delete_confirm_(\d+)$/, async (ctx) => {
     }
     const entryId = parseInt(ctx.match?.[1], 10);
     if (isNaN(entryId)) {
-      handleError(ctx, new Error('Invalid entry ID.'), 'Error deleting journal entry.');
+      handleBotError(ctx, 'Invalid entry ID.');
       return;
     }
     const success = await deleteJournalEntryById(user, entryId);
@@ -132,7 +129,7 @@ bot.action(/^journal_delete_confirm_(\d+)$/, async (ctx) => {
     }
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error deleting journal entry.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -147,7 +144,7 @@ bot.action('cancel_journal', async (ctx) => {
     await ctx.editMessageText('🏠 Main Menu', { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error cancelling journal entry.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -162,6 +159,6 @@ bot.action('cancel_journal_edit', async (ctx) => {
     await ctx.editMessageText('🏠 Main Menu', { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
-    handleError(ctx, error, 'Error cancelling journal edit.');
+    handleBotError(ctx, error);
   }
 });

@@ -1,7 +1,7 @@
 import { bot } from '../services/botService';
 import { findOrCreateUser } from '../services/userService';
 import { mainMenuKeyboard, onboardingLearnMoreKeyboard } from './ui';
-import { handleError } from '../utils/errorHandler';
+import { handleBotError } from '../utils/errorHandler';
 
 // Onboarding: user is ready
 bot.action('onboarding_ready', async (ctx) => {
@@ -9,10 +9,10 @@ bot.action('onboarding_ready', async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const user = await findOrCreateUser(ctx.from);
-    await ctx.editMessageText('Main Menu', { reply_markup: mainMenuKeyboard.reply_markup });
+    await ctx.editMessageText('Main Menu', { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Let\'s begin!');
   } catch (error) {
-    handleError(ctx, error, 'Error during onboarding.');
+    handleBotError(ctx, error);
   }
 });
 
@@ -31,6 +31,6 @@ Ready to begin?`, {
     });
     await ctx.answerCbQuery('Learn more about Hikma');
   } catch (error) {
-    handleError(ctx, error, 'Error learning more about Hikma.');
+    handleBotError(ctx, error);
   }
 });
