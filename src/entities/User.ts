@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, UpdateDateColumn } from 'typeorm';
+import { NotificationSettings } from '../types/NotificationSettings';
 
 @Entity('users')
 export class User {
@@ -45,7 +46,7 @@ export class User {
   last_interaction!: Date;
 
   @Column({ type: 'jsonb', default: '{"morning": true, "evening": true, "wisdom": true}' })
-  notification_settings!: object;
+  notification_settings!: NotificationSettings;
 
   @CreateDateColumn()
   created_at!: Date;

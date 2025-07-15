@@ -11,6 +11,10 @@ import { getRandomHealingTip } from './services/db/healingTipService';
 import { Request, Response, NextFunction } from 'express';
 
 
+import { NotificationSettings } from './types/NotificationSettings';
+
+import { handleError } from './utils/errorHandler';
+
 // Global error logging
 process.on('uncaughtException', (err) => {
   console.error('Uncaught Exception:', err);
@@ -19,15 +23,17 @@ process.on('unhandledRejection', (reason, promise) => {
   console.error('Unhandled Rejection:', reason);
 });
 
+const DEFAULT_REMINDER_TIME = '08:00';
+const DEFAULT_TIP_INTERVAL = 'daily';
+
 // Helper to parse time string (HH:MM) to cron format
-function timeToCron(time: string) {
+function timeToCron(time: string = DEFAULT_REMINDER_TIME) {
   const [hour, minute] = time.split(':').map(Number);
   return `${minute} ${hour} * * *`;
 }
 
 // Helper to parse interval string to cron format (supports daily, every X days, weekly)
-function intervalToCron(interval: string) {
-  if (!interval) return '0 8 * * *'; // default daily at 8:00
+function intervalToCron(interval: string = DEFAULT_TIP_INTERVAL) {
   if (interval === 'daily') return '0 8 * * *';
   if (interval === 'weekly') return '0 8 * * 1';
   const match = interval.match(/every (\d+) days?/i);
@@ -78,19 +84,19 @@ function main() {
         console.log(`📡 Webhook endpoint: http://localhost:${PORT}${WEBHOOK_PATH}`);
       }
 
-      // Dynamic checklist reminders
-      (async () => {
-        const users = await getAllActiveUsers();
-        const times = new Set<string>();
-        users.forEach((user: User) => {
-          const settings = user.notification_settings as any || {};
-          times.add(settings.reminder_time || '08:00');
-        });
-        times.forEach(time => {
-          const cronTime = timeToCron(time);
-          cron.schedule(cronTime, async () => {
-            const usersAtTime = (await getAllActiveUsers()).filter((u: User) => ((u.notification_settings as any)?.reminder_time || '08:00') === time);
-            for (const user of usersAtTime) {
+      cron.schedule('0 * * * *', async () => {
+        try {
+          const users = await getAllActiveUsers();
+          const now = new Date();
+          const currentHour = now.getHours();
+          const currentMinute = now.getMinutes();
+
+          for (const user of users) {
+            const settings: NotificationSettings = user.notification_settings || {};
+            const [reminderHour, reminderMinute] = (settings.reminder_time || DEFAULT_REMINDER_TIME).split(':').map(Number);
+
+            if (reminderHour === currentHour && reminderMinute === currentMinute) {
+              // Send checklist reminder
               try {
                 const checklist = await getOrCreateTodayChecklist(user);
                 const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
@@ -110,38 +116,27 @@ Progress: ${progressBar} ${checklist.completion_percentage}% Complete`;
                 const dayIndex = Math.max(0, Math.min(plan.length - 1, (user.current_day || 1) - 1));
                 const planTip = plan[dayIndex];
                 await bot.telegram.sendMessage(user.telegram_id, `${checklistMsg}\n\n🌱 *Today's Healing Focus:*\n${planTip}`, { parse_mode: 'Markdown' });
-              } catch (err: any) {
-                console.error(`❌ Failed to send checklist to user ${user.telegram_id}:`, err);
+              } catch (err) {
+                handleError(err);
               }
             }
-          });
-        });
-      })();
 
-      // Dynamic healing tip intervals
-      (async () => {
-        const users = await getAllActiveUsers();
-        const intervals = new Set<string>();
-        users.forEach((user: User) => {
-          const settings = user.notification_settings as any || {};
-          intervals.add(settings.tip_interval || 'daily');
-        });
-        intervals.forEach(interval => {
-          const cronTime = intervalToCron(interval);
-          cron.schedule(cronTime, async () => {
-            const usersAtInterval = (await getAllActiveUsers()).filter((u: User) => ((u.notification_settings as any)?.tip_interval || 'daily') === interval);
-            for (const user of usersAtInterval) {
+            // Send healing tip
+            const tipInterval = settings.tip_interval || DEFAULT_TIP_INTERVAL;
+            if (tipInterval === 'daily' && currentHour === 8 && currentMinute === 0) {
               try {
                 const tipObj = await getRandomHealingTip();
                 const tip = tipObj ? tipObj.tip_text : 'No healing tips available.';
                 await bot.telegram.sendMessage(user.telegram_id, `💡 Healing Tip:\n${tip}`);
-              } catch (err: any) {
-                console.error(`❌ Failed to send healing tip to user ${user.telegram_id}:`, err);
+              } catch (err) {
+                handleError(err);
               }
             }
-          });
-        });
-      })();
+          }
+        } catch (err) {
+          handleError(err);
+        }
+      });
 
       app.listen(PORT, '0.0.0.0', () => {
         console.log(`🚀 Express server listening on port ${PORT}`);
@@ -160,6 +155,5 @@ main();
 
 // Add global error handler after all routes
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
-  console.error('Global error handler:', err);
-  res.status(500).send('Internal Server Error');
+  handleError(err, res);
 });
