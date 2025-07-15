@@ -45,7 +45,8 @@ function intervalToCron(interval: string = DEFAULT_TIP_INTERVAL) {
   return '0 8 * * *';
 }
 
-const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
+// Use Railway's assigned port if available, otherwise default to 8080
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 8080;
 const WEBHOOK_PATH = '/telegram-webhook';
 const webhookUrl = process.env.WEBHOOK_URL as string;
 
