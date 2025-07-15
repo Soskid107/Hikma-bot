@@ -9,7 +9,7 @@ bot.action('onboarding_ready', async (ctx) => {
     const chatId = ctx.chat?.id;
     if (!chatId) return;
     const user = await findOrCreateUser(ctx.from);
-    await ctx.reply('Main Menu', { reply_markup: mainMenuKeyboard.reply_markup });
+    await ctx.editMessageText('Main Menu', { reply_markup: mainMenuKeyboard.reply_markup });
     await ctx.answerCbQuery('Let\'s begin!');
   } catch (error) {
     handleError(ctx, error, 'Error during onboarding.');

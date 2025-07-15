@@ -56,18 +56,7 @@ bot.action('health_stress_anxiety', async (ctx) => {
 bot.action('health_menu', async (ctx) => {
   try {
     const availableSymptoms = getAvailableSymptoms();
-    await ctx.editMessageText(`🏥 **Health Guidance System**
-
-I can provide educational information about common symptoms and wellness advice.
-
-📋 **Available Symptoms:**
-${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}
-
-💡 **How to use:**
-/health [symptom]
-Example: /health headache
-
-⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { 
+    await ctx.editMessageText(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map(symptom => `• ${symptom.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { 
       reply_markup: healthMenuKeyboard.reply_markup 
     });
     await ctx.answerCbQuery('Health menu loaded');

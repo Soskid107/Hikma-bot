@@ -42,23 +42,7 @@ Current Settings:
 
 Choose an option to modify:`;
     
-    await ctx.editMessageText(notificationMsg, {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '⏰ Change Reminder Time', callback_data: 'settings_reminder_time' },
-            { text: '💡 Change Tip Frequency', callback_data: 'settings_tip_interval' }
-          ],
-          [
-            { text: '🔔 Toggle Notifications', callback_data: 'toggle_notifications' }
-          ],
-          [
-            { text: '⬅️ Back to Settings', callback_data: 'menu_settings' }
-          ]
-        ]
-      }
-    });
+    await ctx.editMessageText(notificationMsg, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Notification settings loaded');
   } catch (error) {
     handleError(ctx, error, 'Error loading notification settings.');
@@ -82,23 +66,7 @@ Current Profile:
 
 Choose an option to modify:`;
     
-    await ctx.editMessageText(profileMsg, {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '🌐 Change Language', callback_data: 'settings_language' },
-            { text: '🎯 Update Healing Goals', callback_data: 'update_healing_goals' }
-          ],
-          [
-            { text: '📊 Reset Progress', callback_data: 'reset_progress' }
-          ],
-          [
-            { text: '⬅️ Back to Settings', callback_data: 'menu_settings' }
-          ]
-        ]
-      }
-    });
+    await ctx.editMessageText(profileMsg, { reply_markup: { inline_keyboard: [ [ { text: '🌐 Change Language', callback_data: 'settings_language' }, { text: '🎯 Update Healing Goals', callback_data: 'update_healing_goals' } ], [ { text: '🔙 Back', callback_data: 'menu_settings' } ] ] } });
     await ctx.answerCbQuery('Profile settings loaded');
   } catch (error) {
     handleError(ctx, error, 'Error loading profile settings.');
@@ -116,10 +84,7 @@ bot.action('toggle_notifications', async (ctx) => {
     const settings = { ...user.notification_settings, enabled: !(user.notification_settings as any)?.enabled };
     await updateNotificationSettings(user.id, settings);
     const status = settings.enabled ? '✅ Enabled' : '❌ Disabled';
-    await ctx.editMessageText(`🔔 Notifications ${status}`, {
-      parse_mode: 'Markdown',
-      reply_markup: backToSettingsKeyboard.reply_markup
-    });
+    await ctx.editMessageText(`🔔 Notifications ${status}`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery(`Notifications ${settings.enabled ? 'enabled' : 'disabled'}`);
   } catch (error) {
     handleError(ctx, error, 'Error toggling notifications.');
@@ -143,17 +108,7 @@ bot.action('update_healing_goals', async (ctx) => {
 // Reset progress
 bot.action('reset_progress', async (ctx) => {
   try {
-    await ctx.editMessageText('⚠️ **Reset Progress**\n\nThis will reset your current day and progress tracking. Are you sure?', {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: '✅ Yes, Reset', callback_data: 'confirm_reset_progress' },
-            { text: '❌ Cancel', callback_data: 'settings_profile' }
-          ]
-        ]
-      }
-    });
+    await ctx.editMessageText('⚠️ **Reset Progress**\n\nThis will reset your current day and progress tracking. Are you sure?', { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Reset progress confirmation');
   } catch (error) {
     handleError(ctx, error, 'Error showing reset confirmation.');
@@ -172,10 +127,7 @@ bot.action('confirm_reset_progress', async (ctx) => {
           // Database save disabled for local/mock-only operation
       console.log('Settings updated (mock mode)');
     
-    await ctx.editMessageText('✅ Progress reset successfully! You are now back to Day 1.', {
-      parse_mode: 'Markdown',
-      reply_markup: backToSettingsKeyboard.reply_markup
-    });
+    await ctx.editMessageText('✅ Progress reset successfully! You are now back to Day 1.', { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery('Progress reset');
   } catch (error) {
     handleError(ctx, error, 'Error resetting progress.');
@@ -199,10 +151,7 @@ bot.action('send_feedback', async (ctx) => {
 // Language selector
 bot.action('settings_language', async (ctx) => {
   try {
-    await ctx.editMessageText('🌐 *Choose your language / Choisissez votre langue / اختر لغتك / Chagua lugha yako*', {
-      parse_mode: 'Markdown',
-      reply_markup: settingsLanguageKeyboard.reply_markup
-    });
+    await ctx.editMessageText('🌐 *Choose your language / Choisissez votre langue / اختر لغتك / Chagua lugha yako*', { reply_markup: settingsLanguageKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error loading language settings.');
@@ -229,10 +178,7 @@ bot.action(/^set_language_(en|fr|ar|sw)$/, async (ctx) => {
     if (lang === 'fr') langName = 'Français';
     if (lang === 'ar') langName = 'العربية';
     if (lang === 'sw') langName = 'Kiswahili';
-    await ctx.editMessageText(`🌐 Language set to *${langName}*`, {
-      parse_mode: 'Markdown',
-      reply_markup: backToSettingsKeyboard.reply_markup
-    });
+    await ctx.editMessageText(`🌐 Language set to *${langName}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error setting language.');
@@ -242,10 +188,7 @@ bot.action(/^set_language_(en|fr|ar|sw)$/, async (ctx) => {
 // Checklist Reminder Time options
 bot.action('settings_reminder_time', async (ctx) => {
   try {
-    await ctx.editMessageText('⏰ *Choose your daily checklist reminder time:*', {
-      parse_mode: 'Markdown',
-      reply_markup: settingsReminderTimeKeyboard.reply_markup
-    });
+    await ctx.editMessageText('⏰ *Choose your daily checklist reminder time:*', { reply_markup: settingsReminderTimeKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error loading reminder time settings.');
@@ -269,10 +212,7 @@ bot.action(/^set_reminder_time_(\d{2}:\d{2})$/, async (ctx) => {
     }
     const settings = { ...user.notification_settings, reminder_time: time };
     await updateNotificationSettings(user.id, settings);
-    await ctx.editMessageText(`✅ Checklist reminder time set to *${time}*`, {
-      parse_mode: 'Markdown',
-      reply_markup: backToSettingsKeyboard.reply_markup
-    });
+    await ctx.editMessageText(`✅ Checklist reminder time set to *${time}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error setting reminder time.');
@@ -295,10 +235,7 @@ bot.action('set_reminder_time_custom', async (ctx) => {
 // Healing Tip Interval options
 bot.action('settings_tip_interval', async (ctx) => {
   try {
-    await ctx.editMessageText('💡 *How often do you want to receive healing tips?*', {
-      parse_mode: 'Markdown',
-      reply_markup: settingsTipIntervalKeyboard.reply_markup
-    });
+    await ctx.editMessageText('💡 *How often do you want to receive healing tips?*', { reply_markup: settingsTipIntervalKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error loading tip interval settings.');
@@ -324,10 +261,7 @@ bot.action(/^set_tip_interval_(daily|2d|weekly)$/, async (ctx) => {
     }
     const settings = { ...user.notification_settings, tip_interval: interval };
     await updateNotificationSettings(user.id, settings);
-    await ctx.editMessageText(`✅ Healing tip interval set to *${interval}*`, {
-      parse_mode: 'Markdown',
-      reply_markup: backToSettingsKeyboard.reply_markup
-    });
+    await ctx.editMessageText(`✅ Healing tip interval set to *${interval}*`, { reply_markup: backToSettingsKeyboard.reply_markup });
     await ctx.answerCbQuery();
   } catch (error) {
     handleError(ctx, error, 'Error setting tip interval.');
