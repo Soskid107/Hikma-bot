@@ -77,11 +77,15 @@ function main() {
       require('./handlers/healingTipHandlers');
 
       if (webhookUrl && webhookUrl.startsWith('https://')) {
-        app.use(WEBHOOK_PATH, (req, res, next) => {
-          console.log('Received webhook request:', req.method, req.url, req.body);
-          next();
+        app.post(WEBHOOK_PATH, async (req, res) => {
+          try {
+            console.log('Received webhook request:', req.method, req.url, req.body);
+            await bot.handleUpdate(req.body);
+          } catch (err) {
+            console.error('Error handling update:', err);
+          }
+          res.status(200).send('OK');
         });
-        app.use(WEBHOOK_PATH, bot.webhookCallback(WEBHOOK_PATH));
         console.log(`📡 Webhook endpoint: http://localhost:${PORT}${WEBHOOK_PATH}`);
       }
 
