@@ -37,7 +37,7 @@ bot.command('start', async (ctx) => {
       // Existing user - show main menu directly
       const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
 
-      await ctx.editMessageText(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
+      await ctx.reply(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
     } else {
       // New user - show onboarding
       const welcomeMessage = `🕯️ Welcome to Hikma - Your Healing Journey Begins!
@@ -48,7 +48,7 @@ I am Hikma, your companion on a 21-day healing journey inspired by the wisdom of
 
 Ready to begin your transformation?`;
 
-      await ctx.editMessageText(welcomeMessage, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' }, { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' } ] ] } });
+      await ctx.reply(welcomeMessage, { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' }, { text: 'ℹ️ Learn More', callback_data: 'onboarding_learn_more' } ] ] } });
     }
   } catch (error) {
     handleBotError(ctx, error);
@@ -102,7 +102,7 @@ bot.action('onboarding_ready', async (ctx) => {
       const firstName = user.first_name || 'friend';
       const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
 
-      await ctx.editMessageText(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
+      await ctx.reply(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
       await ctx.answerCbQuery('Welcome back!');
     } else {
       // New user - ask for healing goals
@@ -110,7 +110,7 @@ bot.action('onboarding_ready', async (ctx) => {
       if (userId) {
         setUserState(userId, UserState.AWAITING_HEALING_GOALS);
       }
-      await ctx.editMessageText('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', { parse_mode: 'Markdown', reply_markup: undefined });
+      await ctx.reply('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', { parse_mode: 'Markdown', reply_markup: undefined });
       await ctx.answerCbQuery();
     }
   } catch (error) {
@@ -121,7 +121,7 @@ bot.action('onboarding_ready', async (ctx) => {
 // Add onboarding_learn_more callback
 bot.action('onboarding_learn_more', async (ctx) => {
   try {
-    await ctx.editMessageText('🕯️ About Hikma - Your Healing Companion\n\nI am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:\n\n🌿 Traditional Herbal Medicine\n🧘 Spiritual Wellness\n💭 Philosophical Reflection\n📝 Mindful Journaling\n📋 Daily Healing Rituals\n\nThis 21-day journey will help you:\n• Establish healthy daily routines\n• Learn about natural healing methods\n• Reflect on your spiritual and physical well-being\n• Build lasting wellness habits\n\nReady to begin your transformation?', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' } ] ] } });
+    await ctx.reply('🕯️ About Hikma - Your Healing Companion\n\nI am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:\n\n🌿 Traditional Herbal Medicine\n🧘 Spiritual Wellness\n💭 Philosophical Reflection\n📝 Mindful Journaling\n📋 Daily Healing Rituals\n\nThis 21-day journey will help you:\n• Establish healthy daily routines\n• Learn about natural healing methods\n• Reflect on your spiritual and physical well-being\n• Build lasting wellness habits\n\nReady to begin your transformation?', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' } ] ] } });
     ctx.answerCbQuery();
   } catch (error) {
     handleBotError(ctx, error);
@@ -140,7 +140,7 @@ async function sendWisdomQuote(ctx: any) {
     if (!quote || quote.includes('Could not fetch')) {
       quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
     }
-    await ctx.editMessageText('📜 Wisdom Quote:\n' + quote, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
+    await ctx.reply('📜 Wisdom Quote:\n' + quote, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -173,7 +173,7 @@ Morning Rituals:
 
 Progress: ${progressBar} ${checklist.completion_percentage}% Complete
 `;
-    await ctx.editMessageText('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
+    await ctx.reply('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -191,7 +191,7 @@ bot.command('checklist', async (ctx) => {
 async function sendHerbalTip(ctx: any) {
   try {
     const tipText = await getRandomHerbalTip();
-    await ctx.editMessageText('🌿 Herbal Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
+    await ctx.reply('🌿 Herbal Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: herbalMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -207,7 +207,7 @@ bot.command('herbtip', async (ctx) => {
 
 async function sendJournalMenu(ctx: any) {
   try {
-    await ctx.editMessageText('📝 Journal Menu:\nWhat would you like to do?', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
+    await ctx.reply('📝 Journal Menu:\nWhat would you like to do?', { parse_mode: 'Markdown', reply_markup: journalMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -233,7 +233,7 @@ async function sendHealthGuidance(ctx: any) {
     
     const symptom = args.join(' ');
     const guidance = await getHealthGuidance(symptom);
-    await ctx.editMessageText('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+    await ctx.reply('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -265,7 +265,7 @@ ${tipObj.usage_instructions ? `**Usage:** ${tipObj.usage_instructions}` : ''}
 ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
     }
     
-    await ctx.editMessageText('💡 Healing Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
+    await ctx.reply('💡 Healing Tip:\n' + tipText, { parse_mode: 'Markdown', reply_markup: healingMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -384,7 +384,7 @@ async function sendSettingsMenu(ctx: any) {
   try {
     const user = await findOrCreateUser(ctx.from);
     
-    await ctx.editMessageText('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
+    await ctx.reply('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
@@ -433,7 +433,7 @@ bot.command('mystats', async (ctx) => {
       `🏅 Longest Streak: ${progress.longest_streak} days\n` +
       `✅ Days Completed: ${progress.total_days_completed}\n` +
       `📖 Journal Entries: ${journalCount}`;
-    await ctx.editMessageText(statsMsg, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
+    await ctx.reply(statsMsg, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
   }
