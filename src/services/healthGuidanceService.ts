@@ -1,4 +1,4 @@
-import fetch from 'node-fetch';
+const fetch = (url: any, init?: any) => import('node-fetch').then(mod => mod.default(url, init));
 
 interface SymptomInfo {
   symptom: string;
