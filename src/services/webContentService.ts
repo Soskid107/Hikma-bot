@@ -1,4 +1,4 @@
-import * as axios from 'axios';
+const axios = require('axios');
 import { GoalTags } from './contentEngine';
 
 // Web APIs and services for content fetching

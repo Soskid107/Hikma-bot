@@ -4,14 +4,14 @@
   "description": "Hikma - A Telegram bot inspired by Ibn Sina's healing philosophy",
   "main": "dist/app.js",
   "scripts": {
+    "prebuild": "npm install",
     "build": "tsc",
     "start": "node dist/app.js",
     "dev": "ts-node src/app.ts",
     "typeorm": "ts-node -r dotenv/config ./node_modules/typeorm/cli.js",
     "migration:generate": "npm run typeorm -- migration:generate -d src/config/data-source.ts src/migrations/InitialMigration",
     "migration:run": "npm run typeorm -- migration:run -d src/config/data-source.ts",
-    "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts",
-    "postinstall": "npm install"
+    "migration:revert": "npm run typeorm -- migration:revert -d src/config/data-source.ts"
   },
   "keywords": [
     "telegram",
@@ -27,8 +27,6 @@
     "node": "20.x"
   },
   "dependencies": {
-    "@types/axios": "^0.9.36",
-    "@types/node": "^24.0.10",
     "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "cors": "^2.8.5",
@@ -45,7 +43,9 @@
     "winston": "^3.17.0"
   },
   "devDependencies": {
+    "@types/axios": "^0.9.36",
     "@types/express": "^5.0.3",
+    "@types/node": "^24.0.10",
     "@vercel/node": "^5.3.4",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
