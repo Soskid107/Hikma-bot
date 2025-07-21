@@ -105,15 +105,14 @@ function main() {
               try {
                 const checklist = await getOrCreateTodayChecklist(user);
                 const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-                const checklistMsg = `🕯️ Day ${user.current_day} - "Purify the Liver"
+                const checklistMsg = `🕯️ Day ${user.current_day} - "${checklist.daily_focus}"
 Your healing checklist for today:
 
-Morning Rituals:
-💧 Warm Water (500ml) [${checklist.warm_water ? '✅' : '❌'}]
-🌿 Black Seed + Garlic [${checklist.black_seed_garlic ? '✅' : '❌'}]
-🥗 Light Food Before 8pm [${checklist.light_food_before_8pm ? '✅' : '❌'}]
-😴 Sleep by 10pm [${checklist.sleep_time ? '✅' : '❌'}]
-🧘 5-min Thought Clearing [${checklist.thought_clearing ? '✅' : '❌'}]
+Today's Healing Rituals:
+${checklist.checklist_items.map((item: any) => {
+  const emoji = ['💧', '🌿', '🥗', '😴', '🧘'][item.order] || '📋';
+  return `${emoji} ${item.text} [${item.completed ? '✅' : '❌'}]`;
+}).join('\n')}
 
 Progress: ${progressBar} ${checklist.completion_percentage}% Complete`;
                 const healingGoals = await getUserHealingGoals(user.id);

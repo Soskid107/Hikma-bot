@@ -61,22 +61,27 @@ export const wisdomMenuKeyboard = Markup.inlineKeyboard([
   ]
 ]);
 
-export const checklistMenuKeyboard = (checklist: any) => Markup.inlineKeyboard([
-  [
-    Markup.button.callback(`💧 Warm Water ${checklist.warm_water ? '✅' : '❌'}`, `toggle_warm_water_${checklist.id}`),
-    Markup.button.callback(`🌿 Black Seed + Garlic ${checklist.black_seed_garlic ? '✅' : '❌'}`, `toggle_black_seed_garlic_${checklist.id}`)
-  ],
-  [
-    Markup.button.callback(`🥗 Light Food Before 8pm ${checklist.light_food_before_8pm ? '✅' : '❌'}`, `toggle_light_food_before_8pm_${checklist.id}`),
-    Markup.button.callback(`😴 Sleep by 10pm ${checklist.sleep_time ? '✅' : '❌'}`, `toggle_sleep_time_${checklist.id}`)
-  ],
-  [
-    Markup.button.callback(`🧘 Thought Clearing ${checklist.thought_clearing ? '✅' : '❌'}`, `toggle_thought_clearing_${checklist.id}`)
-  ],
-  [
-    Markup.button.callback('🏠 Back to Main Menu', 'back_to_main_menu')
-  ]
-]);
+export const checklistMenuKeyboard = (checklist: any) => {
+  const buttons = checklist.checklist_items.map((item: any, index: number) => {
+    const emoji = ['💧', '🌿', '🥗', '😴', '🧘'][index] || '📋';
+    return Markup.button.callback(
+      `${emoji} ${item.text} ${item.completed ? '✅' : '❌'}`, 
+      `toggle_item_${item.id}`
+    );
+  });
+  
+  // Group buttons into rows of 2
+  const rows = [];
+  for (let i = 0; i < buttons.length; i += 2) {
+    const row = buttons.slice(i, i + 2);
+    rows.push(row);
+  }
+  
+  // Add back button
+  rows.push([Markup.button.callback('🏠 Back to Main Menu', 'back_to_main_menu')]);
+  
+  return Markup.inlineKeyboard(rows);
+};
 
 export const herbalMenuKeyboard = Markup.inlineKeyboard([
   [

@@ -15,20 +15,24 @@ export class DailyChecklist {
   @Column()
   checklist_date!: Date;
 
-  @Column({ default: false })
-  warm_water!: boolean;
+  // Store personalized checklist items as JSON
+  @Column('simple-json', { default: [] })
+  checklist_items!: Array<{
+    id: string;
+    text: string;
+    completed: boolean;
+    order: number;
+  }>;
 
-  @Column({ default: false })
-  black_seed_garlic!: boolean;
+  // Store personalized content
+  @Column('text', { nullable: true })
+  daily_focus?: string;
 
-  @Column({ default: false })
-  light_food_before_8pm!: boolean;
+  @Column('text', { nullable: true })
+  daily_tip?: string;
 
-  @Column({ default: false })
-  sleep_time!: boolean;
-
-  @Column({ default: false })
-  thought_clearing!: boolean;
+  @Column('text', { nullable: true })
+  daily_quote?: string;
 
   @Column({ default: 0 })
   completion_percentage!: number;

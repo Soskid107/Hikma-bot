@@ -7,7 +7,8 @@ bot.on('callback_query', (ctx, next) => {
 });
 
 import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from '../services/userService';
-import { getOrCreateTodayChecklist, updateChecklistItem, getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/mockServices';
+import { getOrCreateTodayChecklist, updateChecklistItem } from '../services/checklistService';
+import { getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/healingPlanService';
 import { mainMenuKeyboard, checklistMenuKeyboard, wisdomMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, healingMenuKeyboard } from './ui';
 import { handleError } from '../utils/errorHandler';
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
@@ -171,13 +172,12 @@ ${progressSummary}
 ${progressBar} ${checklist.completion_percentage}% Complete
 
 **Today's Healing Rituals:**
-💧 ${customizedItems.warm_water} [${checklist.warm_water ? '✅' : '❌'}]
-🌿 ${customizedItems.black_seed_garlic} [${checklist.black_seed_garlic ? '✅' : '❌'}]
-🥗 ${customizedItems.light_food_before_8pm} [${checklist.light_food_before_8pm ? '✅' : '❌'}]
-😴 ${customizedItems.sleep_time} [${checklist.sleep_time ? '✅' : '❌'}]
-🧘 ${customizedItems.thought_clearing} [${checklist.thought_clearing ? '✅' : '❌'}]
+${checklist.checklist_items.map((item: any) => {
+  const emoji = ['💧', '🌿', '🥗', '😴', '🧘'][item.order] || '📋';
+  return `${emoji} ${item.text} [${item.completed ? '✅' : '❌'}]`;
+}).join('\n')}
 
-💡 **Today's Tip:** ${dailyTip}
+💡 **Today's Tip:** ${checklist.daily_tip || dailyTip}
 `;
       await ctx.editMessageText(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
       await ctx.answerCbQuery('Checklist loaded');

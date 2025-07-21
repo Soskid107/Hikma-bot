@@ -302,27 +302,22 @@ async function sendChecklist(ctx: any) {
     const checklist = await getOrCreateTodayChecklist(user);
     const progress = await getOrCreateProgressTracking(user);
     
-    // Get personalized daily content based on user's goals
-    const dailyContent = getDailyContent(user, user.current_day);
-    
     const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
     
     const checklistMsg = `
-${dailyContent.focus}
+${checklist.daily_focus}
 السلام عليكم! Time for your healing checklist
 
 **Today's Healing Rituals:**
-${dailyContent.checklist.map((item, index) => {
-  const checklistKeys = ['warm_water', 'black_seed_garlic', 'light_food_before_8pm', 'sleep_time', 'thought_clearing'];
-  const isCompleted = checklist[checklistKeys[index] as keyof typeof checklist] as boolean;
-  return `${item} [${isCompleted ? '✅' : '❌'}]`;
+${checklist.checklist_items.map((item: any) => {
+  return `${item.text} [${item.completed ? '✅' : '❌'}]`;
 }).join('\n')}
 
 Progress: ${progressBar} ${checklist.completion_percentage}% Complete
 
-💡 **Today's Tip:** ${dailyContent.tip}
+💡 **Today's Tip:** ${checklist.daily_tip}
 
-📜 **Wisdom:** ${dailyContent.quote}
+📜 **Wisdom:** ${checklist.daily_quote}
 
 🔥 **Streak:** ${user.current_streak} days
 
@@ -379,17 +374,25 @@ bot.command('journal', async (ctx) => {
 
 async function sendHealthGuidance(ctx: any) {
   try {
+    console.log('Health guidance command received:', ctx.message?.text);
     const args = ctx.message?.text?.split(' ').slice(1);
+    console.log('Health args:', args);
+    
     if (!args || args.length === 0) {
+      console.log('No args provided, showing available symptoms');
       const availableSymptoms = await getAvailableSymptoms();
-      ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map((symptom: string) => `• ${symptom.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+      await ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map((symptom: string) => `• ${symptom.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
       return;
     }
     
     const symptom = args.join(' ');
+    console.log('Searching for symptom:', symptom);
     const guidance = await getHealthGuidance(symptom);
+    console.log('Guidance result length:', guidance?.length);
     await ctx.reply('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+    console.log('Health guidance response sent');
   } catch (error) {
+    console.error('Error in sendHealthGuidance:', error);
     handleBotError(ctx, error);
   }
 }

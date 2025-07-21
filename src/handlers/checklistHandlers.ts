@@ -7,7 +7,7 @@ import { getDailyContent } from '../services/contentEngine';
 import { checklistMenuKeyboard } from './ui';
 import { handleBotError } from '../utils/errorHandler';
 
-async function handleChecklistToggle(ctx: any, item: string) {
+async function handleChecklistToggle(ctx: any, itemId: string) {
   const chatId = ctx.chat?.id;
   const messageId = ctx.callbackQuery.message?.message_id;
   const telegramUser = ctx.from;
@@ -24,11 +24,15 @@ async function handleChecklistToggle(ctx: any, item: string) {
     const progressUpdate = await updateDailyProgress(user);
     
     const checklist = await getOrCreateTodayChecklist(user);
-    const currentValue = checklist[item as keyof typeof checklist] as boolean;
-    const updatedChecklist = await updateChecklistItem(checklist.id, item as any, !currentValue);
     
-    // Get personalized daily content based on user's goals
-    const dailyContent = getDailyContent(user, user.current_day);
+    // Find the current item to toggle
+    const currentItem = checklist.checklist_items.find(item => item.id === itemId);
+    if (!currentItem) {
+      await ctx.answerCbQuery('Item not found.');
+      return;
+    }
+    
+    const updatedChecklist = await updateChecklistItem(checklist.id, itemId, !currentItem.completed);
     
     // Get progress tracking for detailed stats
     const progress = await getOrCreateProgressTracking(user);
@@ -37,20 +41,18 @@ async function handleChecklistToggle(ctx: any, item: string) {
     const progressBar = '▓'.repeat(Math.round(updatedChecklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(updatedChecklist.completion_percentage / 20));
     
     const checklistMsg = `
-${dailyContent.focus}
+${updatedChecklist.daily_focus}
 
 ${progressBar} ${updatedChecklist.completion_percentage}% Complete
 
 **Today's Healing Rituals:**
-${dailyContent.checklist.map((item, index) => {
-  const checklistKeys = ['warm_water', 'black_seed_garlic', 'light_food_before_8pm', 'sleep_time', 'thought_clearing'];
-  const isCompleted = updatedChecklist[checklistKeys[index] as keyof typeof updatedChecklist] as boolean;
-  return `${item} [${isCompleted ? '✅' : '❌'}]`;
+${updatedChecklist.checklist_items.map((item) => {
+  return `${item.text} [${item.completed ? '✅' : '❌'}]`;
 }).join('\n')}
 
-💡 **Today's Tip:** ${dailyContent.tip}
+💡 **Today's Tip:** ${updatedChecklist.daily_tip}
 
-📜 **Wisdom:** ${dailyContent.quote}
+📜 **Wisdom:** ${updatedChecklist.daily_quote}
 
 ${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}
 `;
@@ -75,22 +77,7 @@ Keep up the great work on your journey!`;
   }
 }
 
-bot.action(/^toggle_warm_water_\d+$/, async (ctx) => {
-  await handleChecklistToggle(ctx, 'warm_water');
-});
-
-bot.action(/^toggle_black_seed_garlic_\d+$/, async (ctx) => {
-  await handleChecklistToggle(ctx, 'black_seed_garlic');
-});
-
-bot.action(/^toggle_light_food_before_8pm_\d+$/, async (ctx) => {
-  await handleChecklistToggle(ctx, 'light_food_before_8pm');
-});
-
-bot.action(/^toggle_sleep_time_\d+$/, async (ctx) => {
-  await handleChecklistToggle(ctx, 'sleep_time');
-});
-
-bot.action(/^toggle_thought_clearing_\d+$/, async (ctx) => {
-  await handleChecklistToggle(ctx, 'thought_clearing');
+bot.action(/^toggle_item_(.+)$/, async (ctx) => {
+  const itemId = ctx.match[1];
+  await handleChecklistToggle(ctx, itemId);
 });

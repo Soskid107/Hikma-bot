@@ -8,6 +8,22 @@ import { Markup } from 'telegraf';
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
 import { handleError, handleBotError } from '../utils/errorHandler';
 
+// Journal: Menu handler
+bot.action('menu_journal', async (ctx) => {
+  try {
+    await ctx.editMessageText(
+      '📝 **Journal Menu**\n\nWhat would you like to do with your journal?',
+      { 
+        parse_mode: 'Markdown', 
+        reply_markup: journalMenuKeyboard.reply_markup 
+      }
+    );
+    await ctx.answerCbQuery('Journal menu loaded');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
 const affirmations = [
   '🌅 Every reflection is a step toward healing. Keep going! 🕯️',
   '💡 Your thoughts matter. Journaling is self-care.',

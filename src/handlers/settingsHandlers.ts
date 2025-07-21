@@ -5,6 +5,22 @@ import { mainMenuKeyboard, settingsMenuKeyboard, settingsLanguageKeyboard, setti
 import { t, supportedLangs, SupportedLang } from '../utils/i18n';
 import { handleBotError } from '../utils/errorHandler';
 
+// Cancel custom input handler
+bot.action('cancel_custom_input', async (ctx) => {
+  try {
+    await ctx.editMessageText(
+      '❌ Custom input cancelled. Returning to settings.',
+      { 
+        parse_mode: 'Markdown', 
+        reply_markup: settingsMenuKeyboard.reply_markup 
+      }
+    );
+    await ctx.answerCbQuery('Input cancelled');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
 // Settings menu
 bot.action('menu_settings', async (ctx) => {
   try {

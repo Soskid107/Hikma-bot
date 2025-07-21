@@ -1,9 +1,11 @@
-// Database service disabled for local/mock-only operation
+// Database service for personalized checklist management
 import AppDataSource from '../config/data-source';
 import { DailyChecklist } from '../entities/DailyChecklist';
 import { User } from '../entities/User';
+import { getDailyContent } from './contentEngine';
 
-export async function getOrCreateTodayChecklist(user: User) {
+// Create or get today's checklist with personalized content
+export async function getOrCreateTodayChecklist(user: User): Promise<DailyChecklist> {
   const checklistRepo = AppDataSource.getRepository(DailyChecklist);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -14,44 +16,64 @@ export async function getOrCreateTodayChecklist(user: User) {
   });
 
   if (!checklist) {
+    // Get personalized content for this user
+    const dailyContent = getDailyContent(user, user.current_day || 1);
+    
+    // Create personalized checklist items
+    const checklistItems = dailyContent.checklist.map((item, index) => ({
+      id: `item_${index}`,
+      text: item,
+      completed: false,
+      order: index
+    }));
+    
     checklist = checklistRepo.create({
       user,
-      day_number: user.current_day,
+      day_number: user.current_day || 1,
       checklist_date: today,
-      warm_water: false,
-      black_seed_garlic: false,
-      light_food_before_8pm: false,
-      sleep_time: false,
-      thought_clearing: false,
+      checklist_items: checklistItems,
+      daily_focus: dailyContent.focus,
+      daily_tip: dailyContent.tip,
+      daily_quote: dailyContent.quote,
       completion_percentage: 0,
     });
+    
     await checklistRepo.save(checklist);
   }
+  
   return checklist;
 }
 
-export async function updateChecklistItem(checklistId: number, item: keyof DailyChecklist, value: boolean) {
+// Update a specific checklist item
+export async function updateChecklistItem(checklistId: number, itemId: string, completed: boolean): Promise<DailyChecklist> {
   const checklistRepo = AppDataSource.getRepository(DailyChecklist);
   const checklist = await checklistRepo.findOneBy({ id: checklistId });
-  if (!checklist) throw new Error('Checklist not found');
-  (checklist[item] as boolean) = value;
-  // Recalculate completion percentage
-  const items = [
-    checklist.warm_water,
-    checklist.black_seed_garlic,
-    checklist.light_food_before_8pm,
-    checklist.sleep_time,
-    checklist.thought_clearing,
-  ];
-  checklist.completion_percentage = Math.round((items.filter(Boolean).length / items.length) * 100);
-  await checklistRepo.save(checklist);
-  return checklist;
+  
+  if (!checklist) {
+    throw new Error('Checklist not found');
+  }
+  
+  // Update the specific item
+  const updatedItems = checklist.checklist_items.map(item => 
+    item.id === itemId ? { ...item, completed } : item
+  );
+  
+  // Calculate completion percentage
+  const completedCount = updatedItems.filter(item => item.completed).length;
+  const completionPercentage = Math.round((completedCount / updatedItems.length) * 100);
+  
+  checklist.checklist_items = updatedItems;
+  checklist.completion_percentage = completionPercentage;
+  
+  if (completionPercentage === 100 && !checklist.completed_at) {
+    checklist.completed_at = new Date();
+  }
+  
+  return await checklistRepo.save(checklist);
 }
 
-import { getDailyContent } from './contentEngine';
-
 // Get personalized checklist content based on user goals
-export function getPersonalizedChecklistContent(user: any): { checklist: string[], tip: string, focus: string } {
+export function getPersonalizedChecklistContent(user: User): { checklist: string[], tip: string, focus: string } {
   const dailyContent = getDailyContent(user, user.current_day || 1);
   
   return {
