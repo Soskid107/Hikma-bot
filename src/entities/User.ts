@@ -36,6 +36,9 @@ export class User {
   @Column({ type: 'jsonb', nullable: true })
   goal_tags?: object;
 
+  @Column({ type: 'simple-array', nullable: true })
+  mapped_goals?: string[];
+
   @Column({ length: 50, default: 'Africa/Lagos' })
   timezone!: string;
 

@@ -113,7 +113,7 @@ bot.on('text', async (ctx) => {
     const user = await findOrCreateUser(ctx.from);
     const userState = getUserState(user.id);
     
-    if (userState?.state === UserState.AWAITING_GOALS) {
+    if (userState?.state === UserState.AWAITING_GOALS || userState?.state === UserState.AWAITING_HEALING_GOALS) {
       const userInput = ctx.message.text;
       
       // Parse user goals from text input
@@ -121,14 +121,16 @@ bot.on('text', async (ctx) => {
       // Map parsed goals to local knowledge base keys
       const parsedGoals = Object.keys(user.goal_tags || {});
       const mappedGoals = mapGoalsToKnowledgeBase(parsedGoals);
-      // Save mapped goals as goal_tags
+      // Save mapped goals as goal_tags (object and array for debug)
       if (!user.goal_tags || typeof user.goal_tags !== 'object') {
         user.goal_tags = {};
       }
       const goalTagsObj = user.goal_tags as Record<string, boolean>;
       mappedGoals.forEach(g => { goalTagsObj[g] = true; });
       user.goal_tags = goalTagsObj;
-      // No user.save?.() here, rely on updateUserGoalTags and DB update
+      // Save mapped goals as array for debug
+      user.mapped_goals = mappedGoals;
+      console.log(`[Onboarding/Update] User ${user.id} | Input: "${userInput}" | Parsed: [${parsedGoals.join(', ')}] | Mapped: [${mappedGoals.join(', ')}]`);
       clearUserState(user.id);
       
       await ctx.reply(`🎯 **Perfect! I've analyzed your goals:**
@@ -141,6 +143,7 @@ Let's begin your personalized healing journey!`, {
         parse_mode: 'Markdown',
         reply_markup: mainMenuKeyboard.reply_markup 
       });
+      return;
     }
   } catch (error) {
     handleBotError(ctx, error);
@@ -306,7 +309,10 @@ bot.command('wisdom', async (ctx) => {
 async function sendChecklist(ctx: any) {
   const telegramUser = ctx.from;
   try {
-    const user = await findOrCreateUser(telegramUser);
+    // Always fetch the latest user from the database
+    let user = await findOrCreateUser(telegramUser);
+    // Re-fetch user to ensure latest goal_tags (simulate reload)
+    user = await findOrCreateUser(telegramUser);
     // Update daily progress and streak
     const progressUpdate = await updateDailyProgress(user);
     const checklist = await getOrCreateTodayChecklist(user);
@@ -319,6 +325,7 @@ async function sendChecklist(ctx: any) {
       goalTags = user.goal_tags as Record<string, boolean>;
     }
     const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal] === true);
+    console.log(`[Checklist] User ${user.id} | Using goals for daily plan: [${activeGoals.join(', ')}]`);
     // Try Gemini API first
     let plan = null;
     let usedGemini = false;
@@ -329,6 +336,7 @@ async function sendChecklist(ctx: any) {
     try {
       console.log(`[Gemini] User ${user.id} | Input: "${userInput}" | Goals: [${activeGoals.join(', ')}] | Trying Gemini API...`);
       plan = await getGeminiPlan(userInput, activeGoals);
+      console.log(`[Gemini] User ${user.id} | Raw Gemini response:`, plan);
       if (plan) {
         usedGemini = true;
         console.log(`[Gemini] User ${user.id} | Gemini SUCCESS | Tags: [${plan.goalTags.join(', ')}] | Checklist: [${plan.checklist.join(', ')}] | Herb: ${plan.herb.name}`);
@@ -341,6 +349,8 @@ async function sendChecklist(ctx: any) {
     }
     if (!plan) {
       plan = getLocalPlan(activeGoals, user.current_day || 1);
+      // Shuffle checklist for variety
+      plan.checklist = plan.checklist.slice().sort(() => Math.random() - 0.5);
       console.log(`[Fallback] User ${user.id} | Used local plan | Checklist: [${plan.checklist.join(', ')}] | Herb: ${plan.herb.name}`);
     }
     // Milestone celebration logic
