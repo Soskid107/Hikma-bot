@@ -48,7 +48,20 @@ export async function updateChecklistItem(checklistId: number, item: keyof Daily
   return checklist;
 }
 
-// Get a random healing checklist item/tip
+import { getDailyContent } from './contentEngine';
+
+// Get personalized checklist content based on user goals
+export function getPersonalizedChecklistContent(user: any): { checklist: string[], tip: string, focus: string } {
+  const dailyContent = getDailyContent(user, user.current_day || 1);
+  
+  return {
+    checklist: dailyContent.checklist,
+    tip: dailyContent.tip,
+    focus: dailyContent.focus
+  };
+}
+
+// Get a random healing checklist item/tip (fallback for backward compatibility)
 export function getRandomChecklistTip(): string {
   const tips = [
     '💧 Drink 500ml of warm water first thing in the morning to kickstart your metabolism.',

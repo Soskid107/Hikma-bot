@@ -40,6 +40,11 @@ async function fetchHerbalInfo(herbName: string): Promise<HerbalInfo | null> {
     }
 
     // Using a free herbal API (you can replace with any herbal API)
+    // For now, return null to use fallback content
+    return null;
+    
+    // Uncomment when you have a real API:
+    /*
     const response = await axios.get(`https://api.example.com/herbs/${herbName}`, {
       timeout: 5000,
       headers: {
@@ -60,6 +65,7 @@ async function fetchHerbalInfo(herbName: string): Promise<HerbalInfo | null> {
       contentCache.set(cacheKey, { content: herbalInfo, timestamp: Date.now() });
       return herbalInfo;
     }
+    */
   } catch (error) {
     console.log(`Could not fetch herbal info for ${herbName}:`, (error as Error).message);
   }
@@ -78,6 +84,11 @@ async function fetchHealthInfo(condition: string): Promise<HealthInfo | null> {
     }
 
     // Using a health API (you can replace with any health information API)
+    // For now, return null to use fallback content
+    return null;
+    
+    // Uncomment when you have a real API:
+    /*
     const response = await axios.get(`https://api.example.com/health/${condition}`, {
       timeout: 5000,
       headers: {
@@ -98,6 +109,7 @@ async function fetchHealthInfo(condition: string): Promise<HealthInfo | null> {
       contentCache.set(cacheKey, { content: healthInfo, timestamp: Date.now() });
       return healthInfo;
     }
+    */
   } catch (error) {
     console.log(`Could not fetch health info for ${condition}:`, (error as Error).message);
   }
@@ -169,6 +181,11 @@ async function getWeatherBasedRecommendations(location: string): Promise<string 
     }
 
     // Using a weather API (you can replace with any weather API)
+    // For now, return null to use fallback content
+    return null;
+    
+    // Uncomment when you have a real API:
+    /*
     const response = await axios.get(`https://api.example.com/weather/${location}`, {
       timeout: 5000,
       headers: {
@@ -193,6 +210,7 @@ async function getWeatherBasedRecommendations(location: string): Promise<string 
         return recommendation;
       }
     }
+    */
   } catch (error) {
     console.log('Could not fetch weather data:', (error as Error).message);
   }
@@ -211,6 +229,11 @@ async function getHealthNews(topic: string): Promise<string | null> {
     }
 
     // Using a news API (you can replace with any news API)
+    // For now, return null to use fallback content
+    return null;
+    
+    // Uncomment when you have a real API:
+    /*
     const response = await axios.get(`https://api.example.com/news/health/${topic}`, {
       timeout: 5000,
       headers: {
@@ -226,6 +249,7 @@ async function getHealthNews(topic: string): Promise<string | null> {
       contentCache.set(cacheKey, { content: newsContent, timestamp: Date.now() });
       return newsContent;
     }
+    */
   } catch (error) {
     console.log('Could not fetch health news:', (error as Error).message);
   }
@@ -248,48 +272,46 @@ export async function getOptimalRecommendations(
   const recommendations: any = {};
   
   try {
-    // Get active goals
+    // Enhanced goal analysis
     const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal as keyof GoalTags]);
+    const goalPriority = analyzeGoalPriority(goalTags, userInput);
     
-    // Fetch herbal information for relevant goals
-    if (activeGoals.includes('immunity') || activeGoals.includes('digestion')) {
-      const herbalInfo = await fetchHerbalInfo('black seed');
-      if (herbalInfo) {
-        recommendations.herbalTip = `🌿 **${herbalInfo.name}**\n\n**Benefits:**\n${herbalInfo.benefits.map(b => `• ${b}`).join('\n')}\n\n**Usage:** ${herbalInfo.usage}\n\n⚠️ **Precautions:** ${herbalInfo.precautions}`;
+    // Get personalized herbal tip based on primary goal
+    if (goalPriority.primary) {
+      const herbalTip = getGoalSpecificHerbalTip(goalPriority.primary);
+      if (herbalTip) {
+        recommendations.herbalTip = `🌿 **${goalPriority.primary.charAt(0).toUpperCase() + goalPriority.primary.slice(1)} Focus**: ${herbalTip}`;
       }
     }
     
-    // Get health advice for specific conditions
-    if (activeGoals.includes('sleep')) {
-      const healthInfo = await fetchHealthInfo('insomnia');
-      if (healthInfo) {
-        recommendations.healthAdvice = `😴 **Sleep Support**\n\n**Natural Remedies:**\n${healthInfo.naturalRemedies.map(r => `• ${r}`).join('\n')}\n\n**Lifestyle Tips:**\n${healthInfo.lifestyleTips.map(t => `• ${t}`).join('\n')}`;
+    // Get comprehensive health advice
+    if (userInput) {
+      const healthAdvice = await getRealTimeHealthInfo(userInput);
+      if (healthAdvice) {
+        const advice = healthAdvice.naturalRemedies.slice(0, 3).join(', ');
+        recommendations.healthAdvice = `💡 **Personalized Health Insight**: ${advice}`;
       }
     }
     
-    // Get weather-based recommendations
+    // Get weather-based recommendations with goal context
     if (location) {
       const weatherTip = await getWeatherBasedRecommendations(location);
       if (weatherTip) {
-        recommendations.weatherTip = weatherTip;
+        const goalContext = getWeatherGoalContext(goalPriority.primary);
+        recommendations.weatherTip = `${weatherTip}\n\n${goalContext}`;
       }
     }
     
-    // Get latest health news
-    if (activeGoals.length > 0) {
-      const primaryGoal = activeGoals[0];
-      const newsInsight = await getHealthNews(primaryGoal);
-      if (newsInsight) {
-        recommendations.newsInsight = newsInsight;
-      }
-    }
+    // Get relevant health news
+    const newsTopic = goalPriority.primary || 'wellness';
+    const newsInsight = await getHealthNews(newsTopic);
+    if (newsInsight) recommendations.newsInsight = newsInsight;
     
-    // Generate AI content if user provided specific input
-    if (userInput) {
-      const aiSuggestion = await generateAIContent(userInput, goalTags);
-      if (aiSuggestion) {
-        recommendations.aiSuggestion = `🤖 **AI Healing Insight**\n\n${aiSuggestion}`;
-      }
+    // Generate intelligent AI-powered suggestion
+    const aiPrompt = generateIntelligentPrompt(goalTags, goalPriority, userInput);
+    const aiSuggestion = await generateAIContent(aiPrompt, goalTags);
+    if (aiSuggestion) {
+      recommendations.aiSuggestion = `🤖 **AI-Powered Insight**: ${aiSuggestion}`;
     }
     
   } catch (error) {
@@ -297,6 +319,85 @@ export async function getOptimalRecommendations(
   }
   
   return recommendations;
+}
+
+// Helper function to analyze goal priority
+function analyzeGoalPriority(goalTags: GoalTags, userInput?: string): { primary: string; secondary: string[] } {
+  const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal as keyof GoalTags]);
+  
+  if (activeGoals.length === 0) {
+    return { primary: 'general', secondary: [] };
+  }
+  
+  // Analyze user input for urgency indicators
+  const urgentKeywords = ['severe', 'bad', 'terrible', 'awful', 'really', 'very', 'extremely'];
+  const isUrgent = userInput && urgentKeywords.some(keyword => userInput.toLowerCase().includes(keyword));
+  
+  if (isUrgent) {
+    // Prioritize stress/anxiety for urgent cases
+    if (activeGoals.includes('stress')) return { primary: 'stress', secondary: activeGoals.filter(g => g !== 'stress') };
+    if (activeGoals.includes('anxiety')) return { primary: 'anxiety', secondary: activeGoals.filter(g => g !== 'anxiety') };
+  }
+  
+  // Default priority based on health impact
+  const priorityOrder = ['sleep', 'stress', 'digestion', 'energy', 'immunity', 'anxiety', 'spiritual', 'hormonal'];
+  
+  for (const goal of priorityOrder) {
+    if (activeGoals.includes(goal)) {
+      return { primary: goal, secondary: activeGoals.filter(g => g !== goal) };
+    }
+  }
+  
+  return { primary: activeGoals[0], secondary: activeGoals.slice(1) };
+}
+
+// Helper function to get weather context based on goals
+function getWeatherGoalContext(primaryGoal?: string): string {
+  const contexts = {
+    sleep: '💤 Consider adjusting your sleep environment based on weather conditions.',
+    stress: '🧘 Weather can affect stress levels. Practice extra self-care during extreme conditions.',
+    digestion: '🥗 Weather changes can impact digestion. Stay hydrated and eat seasonally.',
+    energy: '⚡ Weather affects energy levels. Adjust your activity accordingly.',
+    immunity: '💪 Weather changes can challenge immunity. Boost your defenses.',
+    anxiety: '😌 Weather can trigger anxiety. Use calming techniques during storms.',
+    spiritual: '🕯️ Connect with nature\'s rhythms through weather changes.',
+    general: '🌤️ Let weather guide your healing practices today.'
+  };
+  
+  return contexts[primaryGoal as keyof typeof contexts] || contexts.general;
+}
+
+// Helper function to generate intelligent prompts
+function generateIntelligentPrompt(goalTags: GoalTags, goalPriority: any, userInput?: string): string {
+  const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal as keyof GoalTags]);
+  
+  let prompt = `As a holistic health advisor inspired by Ibn Sina's wisdom, provide a personalized recommendation for someone with these health goals: ${activeGoals.join(', ')}.`;
+  
+  if (userInput) {
+    prompt += ` They mentioned: "${userInput}". `;
+  }
+  
+  prompt += `Primary focus: ${goalPriority.primary}. `;
+  prompt += `Provide practical, actionable advice that combines traditional wisdom with modern understanding. Keep it concise but meaningful.`;
+  
+  return prompt;
+}
+
+// Helper function to get goal-specific herbal tips
+function getGoalSpecificHerbalTip(goal: string): string {
+  const herbalTips = {
+    sleep: 'Chamomile tea before bed promotes relaxation and better sleep quality.',
+    stress: 'Lavender essential oil can help reduce stress and anxiety levels.',
+    digestion: 'Ginger tea supports healthy digestion and reduces bloating.',
+    energy: 'Green tea provides sustained energy without the crash of coffee.',
+    immunity: 'Echinacea and vitamin C-rich foods boost your immune system.',
+    anxiety: 'Ashwagandha is an adaptogen that helps manage stress and anxiety.',
+    spiritual: 'Sage tea promotes mental clarity and spiritual awareness.',
+    hormonal: 'Evening primrose oil supports hormonal balance naturally.',
+    general: 'Black seed oil provides comprehensive health benefits.'
+  };
+  
+  return herbalTips[goal as keyof typeof herbalTips] || herbalTips.general;
 }
 
 // Function to get real-time herbal data

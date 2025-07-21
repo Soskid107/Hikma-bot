@@ -315,7 +315,7 @@ const symptomDatabase: { [key: string]: SymptomInfo } = {
 
   skin_problems: {
     symptom: "Skin Problems (Acne, Rashes, Dryness)",
-    keywords: ["skin", "acne", "rash", "dry skin", "eczema", "psoriasis", "skin problems", "breakout", "pimples"],
+    keywords: ["skin", "acne", "cystic acne", "rash", "dry skin", "eczema", "psoriasis", "skin problems", "breakout", "pimples", "zits", "blackheads", "whiteheads"],
     possible_causes: [
       "Hormonal changes",
       "Poor diet",
@@ -615,39 +615,85 @@ const symptomDatabase: { [key: string]: SymptomInfo } = {
   }
 };
 
-// Search function to find relevant symptoms based on keywords
+// Enhanced search function with fuzzy matching and semantic understanding
 function searchSymptoms(query: string): string[] {
   const searchTerm = query.toLowerCase().trim();
   const results: string[] = [];
   
-  // First, try exact matches
+  // Common synonyms and related terms mapping
+  const synonymMap: { [key: string]: string[] } = {
+    'acne': ['pimples', 'zits', 'breakouts', 'cystic acne', 'whiteheads', 'blackheads', 'skin problems'],
+    'sleep': ['insomnia', 'sleepless', 'rest', 'tired', 'fatigue', 'sleep problems'],
+    'stress': ['anxiety', 'worried', 'tension', 'pressure', 'overwhelmed', 'stress anxiety'],
+    'digestion': ['stomach', 'belly', 'bloating', 'gas', 'indigestion', 'digestive issues'],
+    'energy': ['tired', 'fatigue', 'weakness', 'low energy', 'lethargy', 'exhausted'],
+    'pain': ['ache', 'hurt', 'sore', 'discomfort', 'back pain', 'joint pain', 'headache'],
+    'skin': ['acne', 'rash', 'eczema', 'psoriasis', 'dry skin', 'skin problems'],
+    'mental': ['anxiety', 'depression', 'mood', 'mental health', 'stress', 'anxiety mental'],
+    'immune': ['sick', 'infection', 'cold', 'flu', 'weak immune', 'immunity'],
+    'heart': ['chest', 'cardiac', 'heartbeat', 'cardiovascular', 'heart health'],
+    'weight': ['obesity', 'overweight', 'lose weight', 'gain weight', 'diet', 'weight management']
+  };
+  
+  // Expand search terms with synonyms
+  const expandedTerms = [searchTerm];
+  for (const [category, synonyms] of Object.entries(synonymMap)) {
+    if (searchTerm.includes(category) || synonyms.some(s => searchTerm.includes(s))) {
+      expandedTerms.push(...synonyms);
+    }
+  }
+  
+  // Score-based search with multiple matching strategies
+  const scoredResults: { key: string; score: number }[] = [];
+  
   for (const [key, info] of Object.entries(symptomDatabase)) {
-    if (info.symptom.toLowerCase().includes(searchTerm) || 
-        key.toLowerCase().includes(searchTerm)) {
-      results.push(key);
+    let score = 0;
+    const allText = `${info.symptom} ${info.keywords.join(' ')}`.toLowerCase();
+    
+    // Exact match gets highest score
+    if (info.symptom.toLowerCase().includes(searchTerm) || key.toLowerCase().includes(searchTerm)) {
+      score += 100;
     }
-  }
-  
-  // If no exact matches, search through keywords
-  if (results.length === 0) {
-    for (const [key, info] of Object.entries(symptomDatabase)) {
-      if (info.keywords.some(keyword => keyword.toLowerCase().includes(searchTerm))) {
-        results.push(key);
+    
+    // Keyword match
+    if (info.keywords.some(keyword => keyword.toLowerCase().includes(searchTerm))) {
+      score += 50;
+    }
+    
+    // Synonym match
+    for (const term of expandedTerms) {
+      if (allText.includes(term)) {
+        score += 25;
       }
     }
-  }
-  
-  // If still no results, try partial matches
-  if (results.length === 0) {
-    for (const [key, info] of Object.entries(symptomDatabase)) {
-      const allText = `${info.symptom} ${info.keywords.join(' ')}`.toLowerCase();
-      if (allText.includes(searchTerm)) {
-        results.push(key);
+    
+    // Partial word match
+    const words = searchTerm.split(' ');
+    for (const word of words) {
+      if (word.length > 2 && allText.includes(word)) {
+        score += 10;
       }
+    }
+    
+    // Semantic similarity (basic)
+    if (searchTerm.includes('skin') && (key.includes('skin') || info.keywords.some(k => k.includes('skin')))) {
+      score += 15;
+    }
+    if (searchTerm.includes('pain') && (key.includes('pain') || info.keywords.some(k => k.includes('pain')))) {
+      score += 15;
+    }
+    if (searchTerm.includes('mental') && (key.includes('mental') || key.includes('anxiety') || key.includes('stress'))) {
+      score += 15;
+    }
+    
+    if (score > 0) {
+      scoredResults.push({ key, score });
     }
   }
   
-  return results;
+  // Sort by score and return top results
+  scoredResults.sort((a, b) => b.score - a.score);
+  return scoredResults.map(r => r.key);
 }
 
 export async function getHealthGuidance(symptom: string): Promise<string> {

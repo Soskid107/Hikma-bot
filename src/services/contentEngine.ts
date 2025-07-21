@@ -301,52 +301,94 @@ export function parseUserGoals(userInput: string): GoalTags {
   const input = userInput.toLowerCase();
   const goals: GoalTags = {};
 
-  // Sleep-related keywords
-  if (input.includes('sleep') || input.includes('insomnia') || input.includes('rest') || 
-      input.includes('bedtime') || input.includes('tired') || input.includes('exhausted')) {
-    goals.sleep = true;
+  // Enhanced keyword patterns with context awareness
+  const goalPatterns = {
+    sleep: [
+      'sleep', 'insomnia', 'rest', 'bedtime', 'wake up', 'tired', 'exhausted',
+      'can\'t sleep', 'sleepless', 'sleeping problems', 'sleep quality',
+      'early bedtime', 'sleep schedule', 'sleep routine', 'restless'
+    ],
+    stress: [
+      'stress', 'anxiety', 'worry', 'tension', 'pressure', 'overwhelmed',
+      'burnout', 'mental load', 'stressful', 'calm', 'relax', 'peace',
+      'stress management', 'stress relief', 'anxiety relief', 'tense'
+    ],
+    digestion: [
+      'digestion', 'stomach', 'bloating', 'gas', 'indigestion', 'gut',
+      'belly', 'digestive', 'upset stomach', 'nausea', 'constipation',
+      'diarrhea', 'food', 'eating', 'meal', 'diet', 'appetite'
+    ],
+    energy: [
+      'energy', 'tired', 'fatigue', 'weakness', 'lethargy', 'exhausted',
+      'low energy', 'boost energy', 'vitality', 'strength', 'power',
+      'motivation', 'drive', 'active', 'energetic', 'lively'
+    ],
+    spiritual: [
+      'spiritual', 'mindfulness', 'meditation', 'prayer', 'reflection',
+      'inner peace', 'soul', 'spirit', 'consciousness', 'awareness',
+      'zen', 'calm', 'tranquil', 'serenity', 'inner healing', 'purpose'
+    ],
+    immunity: [
+      'immunity', 'immune', 'sick', 'infection', 'cold', 'flu',
+      'weak immune', 'boost immunity', 'health', 'wellness',
+      'prevention', 'disease', 'illness', 'symptoms', 'sick'
+    ],
+    anxiety: [
+      'anxiety', 'mental', 'depression', 'mood', 'sad', 'hopeless',
+      'panic', 'fear', 'nervous', 'worried', 'mental health',
+      'psychological', 'emotional', 'mind', 'brain', 'uneasy'
+    ],
+    hormonal: [
+      'hormonal', 'hormone', 'pms', 'period', 'menstrual', 'pregnancy',
+      'menopause', 'thyroid', 'endocrine', 'balance', 'regulation',
+      'fertility', 'reproductive', 'cycle', 'mood swings'
+    ]
+  };
+
+  // Score-based goal detection
+  const goalScores: { [key: string]: number } = {};
+
+  for (const [goal, patterns] of Object.entries(goalPatterns)) {
+    let score = 0;
+    for (const pattern of patterns) {
+      if (input.includes(pattern)) {
+        score += 1;
+        // Bonus for exact matches
+        if (input.includes(` ${pattern} `) || input.startsWith(pattern) || input.endsWith(pattern)) {
+          score += 0.5;
+        }
+      }
+    }
+    if (score > 0) {
+      goalScores[goal] = score;
+    }
   }
 
-  // Stress-related keywords
-  if (input.includes('stress') || input.includes('anxiety') || input.includes('overwhelmed') || 
-      input.includes('pressure') || input.includes('tense') || input.includes('worried')) {
-    goals.stress = true;
+  // Set goals based on scores (threshold of 0.5)
+  for (const [goal, score] of Object.entries(goalScores)) {
+    if (score >= 0.5) {
+      goals[goal as keyof GoalTags] = true;
+    }
   }
 
-  // Digestion-related keywords
-  if (input.includes('digestion') || input.includes('stomach') || input.includes('gut') || 
-      input.includes('bloating') || input.includes('indigestion') || input.includes('constipation')) {
+  // Context-aware adjustments
+  if (input.includes('skin') || input.includes('acne') || input.includes('rash')) {
+    goals.digestion = true; // Skin often related to gut health
+    goals.immunity = true;  // And immune system
+  }
+
+  if (input.includes('weight') || input.includes('diet')) {
     goals.digestion = true;
-  }
-
-  // Energy-related keywords
-  if (input.includes('energy') || input.includes('fatigue') || input.includes('tired') || 
-      input.includes('vitality') || input.includes('lively') || input.includes('active')) {
     goals.energy = true;
   }
 
-  // Spiritual-related keywords
-  if (input.includes('spiritual') || input.includes('soul') || input.includes('prayer') || 
-      input.includes('meditation') || input.includes('inner peace') || input.includes('purpose')) {
-    goals.spiritual = true;
+  if (input.includes('pain') || input.includes('ache')) {
+    goals.stress = true; // Pain often related to stress
   }
 
-  // Immunity-related keywords
-  if (input.includes('immunity') || input.includes('immune') || input.includes('sick') || 
-      input.includes('cold') || input.includes('flu') || input.includes('health')) {
-    goals.immunity = true;
-  }
-
-  // Anxiety-specific keywords
-  if (input.includes('anxiety') || input.includes('panic') || input.includes('fear') || 
-      input.includes('nervous') || input.includes('uneasy') || input.includes('apprehensive')) {
-    goals.anxiety = true;
-  }
-
-  // Hormonal-related keywords
-  if (input.includes('hormonal') || input.includes('hormone') || input.includes('pms') || 
-      input.includes('menstrual') || input.includes('cycle') || input.includes('mood swings')) {
-    goals.hormonal = true;
+  if (input.includes('focus') || input.includes('concentration')) {
+    goals.energy = true;
+    goals.stress = true;
   }
 
   // If no specific goals detected, default to general
@@ -362,8 +404,27 @@ export function getDailyContent(user: User, day: number): DailyContent {
   const goalTags = user.goal_tags as GoalTags || { general: true };
   const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal as keyof GoalTags]);
   
-  // If multiple goals, rotate through them based on the day
-  const primaryGoal = activeGoals[day % activeGoals.length] || 'general';
+  // Enhanced content selection with user progress awareness
+  let primaryGoal = activeGoals[day % activeGoals.length] || 'general';
+  
+  // Adjust content based on user's current day and progress
+  if (day <= 7) {
+    // First week: Focus on building habits and foundation
+    if (activeGoals.includes('sleep')) primaryGoal = 'sleep';
+    else if (activeGoals.includes('stress')) primaryGoal = 'stress';
+    else if (activeGoals.includes('digestion')) primaryGoal = 'digestion';
+  } else if (day <= 14) {
+    // Second week: Focus on deeper healing and energy
+    if (activeGoals.includes('energy')) primaryGoal = 'energy';
+    else if (activeGoals.includes('immunity')) primaryGoal = 'immunity';
+    else if (activeGoals.includes('spiritual')) primaryGoal = 'spiritual';
+  } else {
+    // Final week: Focus on advanced practices and maintenance
+    if (activeGoals.includes('anxiety')) primaryGoal = 'anxiety';
+    else if (activeGoals.includes('hormonal')) primaryGoal = 'hormonal';
+    else if (activeGoals.includes('spiritual')) primaryGoal = 'spiritual';
+  }
+  
   const content = GOAL_CONTENT_MAPPINGS[primaryGoal as keyof typeof GOAL_CONTENT_MAPPINGS];
   
   if (!content) {
@@ -377,12 +438,25 @@ export function getDailyContent(user: User, day: number): DailyContent {
     };
   }
 
+  // Create personalized focus message
+  const focusMessages = {
+    sleep: `Day ${day} - Sleep & Rest Focus`,
+    stress: `Day ${day} - Stress Management Focus`,
+    digestion: `Day ${day} - Digestive Wellness Focus`,
+    energy: `Day ${day} - Energy & Vitality Focus`,
+    spiritual: `Day ${day} - Spiritual Wellness Focus`,
+    immunity: `Day ${day} - Immune Health Focus`,
+    anxiety: `Day ${day} - Mental Clarity Focus`,
+    hormonal: `Day ${day} - Hormonal Balance Focus`,
+    general: `Day ${day} - Holistic Healing Focus`
+  };
+
   return {
     checklist: content.checklist,
     tip: content.tips[day % content.tips.length],
     quote: content.quotes[day % content.quotes.length],
     journalPrompt: content.journalPrompts[day % content.journalPrompts.length],
-    focus: `Day ${day} - ${primaryGoal.charAt(0).toUpperCase() + primaryGoal.slice(1)} Focus`
+    focus: focusMessages[primaryGoal as keyof typeof focusMessages] || `Day ${day} - Healing Journey`
   };
 }
 

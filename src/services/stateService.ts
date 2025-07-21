@@ -7,6 +7,7 @@
 
 // Define possible user states
 export enum UserState {
+  AWAITING_GOALS = 'awaiting_goals',
   AWAITING_HEALING_GOALS = 'awaiting_healing_goals',
   AWAITING_JOURNAL_ENTRY = 'awaiting_journal_entry',
   AWAITING_JOURNAL_EDIT = 'awaiting_journal_edit',

@@ -94,38 +94,163 @@ bot.command('menu', async (ctx) => {
   }
 });
 
-// Add onboarding_ready callback to show main menu after onboarding
-bot.action('onboarding_ready', async (ctx) => {
-  try {
-    const user = await findOrCreateUser(ctx.from);
-    
-    // Check if user already has healing goals
-    if (user.healing_goals && Object.keys(user.healing_goals).length > 0) {
-      // Existing user - show main menu directly
-      const firstName = user.first_name || 'friend';
-      const mainMenu = `🕯️ Welcome back, ${firstName}!\n\nChoose your healing path:`;
 
-      await ctx.reply(mainMenu, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
-      await ctx.answerCbQuery('Welcome back!');
-    } else {
-      // New user - ask for healing goals
-      const userId = ctx.from?.id;
-      if (userId) {
-        setUserState(userId, UserState.AWAITING_HEALING_GOALS);
-      }
-      await ctx.reply('🌱 Before we begin, what is your main healing goal for the next 21 days?\n\nExamples: Improve digestion, reduce stress, better sleep, boost energy, spiritual growth, etc.\n\nPlease type your goal(s) below:', { parse_mode: 'Markdown', reply_markup: undefined });
-      await ctx.answerCbQuery();
-    }
-  } catch (error) {
-    handleBotError(ctx, error);
-  }
-});
 
 // Add onboarding_learn_more callback
 bot.action('onboarding_learn_more', async (ctx) => {
   try {
     await ctx.reply('🕯️ About Hikma - Your Healing Companion\n\nI am inspired by the wisdom of Ibn Sina (Avicenna), the greatest physician of the Islamic Golden Age. My approach combines:\n\n🌿 Traditional Herbal Medicine\n🧘 Spiritual Wellness\n💭 Philosophical Reflection\n📝 Mindful Journaling\n📋 Daily Healing Rituals\n\nThis 21-day journey will help you:\n• Establish healthy daily routines\n• Learn about natural healing methods\n• Reflect on your spiritual and physical well-being\n• Build lasting wellness habits\n\nReady to begin your transformation?', { parse_mode: 'Markdown', reply_markup: { inline_keyboard: [ [ { text: '🚀 Yes, I\'m Ready!', callback_data: 'onboarding_ready' } ] ] } });
     ctx.answerCbQuery();
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+// Handle text messages for goal collection
+bot.on('text', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const userState = getUserState(user.id);
+    
+    if (userState?.state === UserState.AWAITING_GOALS) {
+      const userInput = ctx.message.text;
+      
+      // Parse user goals from text input
+      await updateUserGoalTags(user, userInput);
+      clearUserState(user.id);
+      
+      await ctx.reply(`🎯 **Perfect! I've analyzed your goals:**
+
+"${userInput}"
+
+I'll now provide you with personalized healing content based on your specific needs. Your journey is tailored just for you!
+
+Let's begin your personalized healing journey!`, { 
+        parse_mode: 'Markdown',
+        reply_markup: mainMenuKeyboard.reply_markup 
+      });
+    }
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+// Goal selection handlers
+bot.action('goal_sleep_stress', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = { sleep: true, stress: true };
+    await updateUserGoalTags(user, 'sleep and stress management');
+    
+    await ctx.editMessageText(`🎯 **Perfect! Your Healing Focus: Sleep & Stress**
+
+I'll now provide you with personalized content for:
+😴 Better sleep quality and routines
+🧘 Stress reduction techniques
+🌿 Calming herbal remedies
+💭 Mindfulness practices
+
+Let's begin your personalized healing journey!`, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+    await ctx.answerCbQuery('Goals set for sleep & stress!');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+bot.action('goal_digestion_energy', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = { digestion: true, energy: true };
+    await updateUserGoalTags(user, 'digestive health and energy boost');
+    
+    await ctx.editMessageText(`🎯 **Perfect! Your Healing Focus: Digestion & Energy**
+
+I'll now provide you with personalized content for:
+🥗 Digestive wellness and gut health
+⚡ Natural energy boosters
+🌿 Digestive herbal remedies
+💪 Energy optimization tips
+
+Let's begin your personalized healing journey!`, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+    await ctx.answerCbQuery('Goals set for digestion & energy!');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+bot.action('goal_anxiety_mental', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = { anxiety: true, spiritual: true };
+    await updateUserGoalTags(user, 'anxiety relief and mental clarity');
+    
+    await ctx.editMessageText(`🎯 **Perfect! Your Healing Focus: Anxiety & Mental Health**
+
+I'll now provide you with personalized content for:
+🧘 Anxiety reduction techniques
+💭 Mental clarity practices
+🌿 Calming herbal remedies
+🕯️ Spiritual wellness guidance
+
+Let's begin your personalized healing journey!`, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+    await ctx.answerCbQuery('Goals set for anxiety & mental health!');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+bot.action('goal_immunity_wellness', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = { immunity: true, general: true };
+    await updateUserGoalTags(user, 'immune system boost and overall wellness');
+    
+    await ctx.editMessageText(`🎯 **Perfect! Your Healing Focus: Immunity & Wellness**
+
+I'll now provide you with personalized content for:
+💪 Immune system strengthening
+🌿 Immunity-boosting herbs
+🥗 Nutritional wellness
+🏃‍♂️ Overall health optimization
+
+Let's begin your personalized healing journey!`, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+    await ctx.answerCbQuery('Goals set for immunity & wellness!');
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+bot.action('goal_general', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = { general: true };
+    await updateUserGoalTags(user, 'general healing and wellness');
+    
+    await ctx.editMessageText(`🎯 **Perfect! Your Healing Focus: General Wellness**
+
+I'll now provide you with balanced content for:
+🌿 Overall health and wellness
+💪 General healing practices
+🧘 Holistic wellness approach
+🕯️ Traditional healing wisdom
+
+Let's begin your personalized healing journey!`, { 
+      parse_mode: 'Markdown',
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+    await ctx.answerCbQuery('Goals set for general wellness!');
   } catch (error) {
     handleBotError(ctx, error);
   }

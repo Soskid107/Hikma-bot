@@ -291,10 +291,15 @@ bot.action('optimal_recommendations', async (ctx) => {
         response += `📜 **Wisdom**: ${dailyContent.quote}`;
       }
       
-      await ctx.editMessageText(response, { 
-        parse_mode: 'Markdown', 
-        reply_markup: mainMenuKeyboard.reply_markup 
-      });
+      // Check if message content has changed to avoid "message is not modified" error
+      const message = ctx.callbackQuery?.message;
+      const currentText = message && 'text' in message ? message.text : '';
+      if (currentText !== response) {
+        await ctx.editMessageText(response, { 
+          parse_mode: 'Markdown', 
+          reply_markup: mainMenuKeyboard.reply_markup 
+        });
+      }
       await ctx.answerCbQuery('Optimal recommendations provided');
     });
   } catch (error) {
