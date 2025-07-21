@@ -7,6 +7,9 @@ import { getRandomHerbalTip, addHerbalTip } from '../services/herbalService';
 import { getRandomHealingTip } from '../services/db/healingTipService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
 import { findOrCreateUser, getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking, getAllActiveUsers } from '../services/userService';
+import { updateDailyProgress, getProgressSummary, getPersonalizedReminder, getStreakMotivation } from '../services/streakService';
+import { updateUserGoalTags, getDailyContent, getGoalSpecificQuote, getGoalSpecificJournalPrompt } from '../services/contentEngine';
+import { getOptimalRecommendations } from '../services/webContentService';
 import { t } from '../utils/i18n';
 import { isAdmin } from '../config/admin';
 import { mainMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, wisdomMenuKeyboard, checklistMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, healingMenuKeyboard } from './ui';
@@ -136,10 +139,19 @@ bot.action('onboarding_learn_more', async (ctx) => {
 
 async function sendWisdomQuote(ctx: any) {
   try {
-    let quote = await getRandomWisdomQuote();
-    if (!quote || quote.includes('Could not fetch')) {
-      quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
+    const user = await findOrCreateUser(ctx.from);
+    
+    // Get goal-specific wisdom quote
+    let quote = getGoalSpecificQuote(user);
+    
+    // Fallback to random quote if needed
+    if (!quote) {
+      quote = await getRandomWisdomQuote();
+      if (!quote || quote.includes('Could not fetch')) {
+        quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
+      }
     }
+    
     await ctx.reply('📜 Wisdom Quote:\n' + quote, { parse_mode: 'Markdown', reply_markup: wisdomMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
@@ -158,20 +170,38 @@ async function sendChecklist(ctx: any) {
   const telegramUser = ctx.from;
   try {
     const user = await findOrCreateUser(telegramUser);
+    
+    // Update daily progress and streak
+    const progressUpdate = await updateDailyProgress(user);
+    
     const checklist = await getOrCreateTodayChecklist(user);
+    const progress = await getOrCreateProgressTracking(user);
+    
+    // Get personalized daily content based on user's goals
+    const dailyContent = getDailyContent(user, user.current_day);
+    
     const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
+    
     const checklistMsg = `
-🕯️ Day ${user.current_day} - "Purify the Liver"
+${dailyContent.focus}
 السلام عليكم! Time for your healing checklist
 
-Morning Rituals:
-💧 Warm Water (500ml) [${checklist.warm_water ? '✅' : '❌'}]
-🌿 Black Seed + Garlic [${checklist.black_seed_garlic ? '✅' : '❌'}]
-🥗 Light Food Before 8pm [${checklist.light_food_before_8pm ? '✅' : '❌'}]
-😴 Sleep by 10pm [${checklist.sleep_time ? '✅' : '❌'}]
-🧘 5-min Thought Clearing [${checklist.thought_clearing ? '✅' : '❌'}]
+**Today's Healing Rituals:**
+${dailyContent.checklist.map((item, index) => {
+  const checklistKeys = ['warm_water', 'black_seed_garlic', 'light_food_before_8pm', 'sleep_time', 'thought_clearing'];
+  const isCompleted = checklist[checklistKeys[index] as keyof typeof checklist] as boolean;
+  return `${item} [${isCompleted ? '✅' : '❌'}]`;
+}).join('\n')}
 
 Progress: ${progressBar} ${checklist.completion_percentage}% Complete
+
+💡 **Today's Tip:** ${dailyContent.tip}
+
+📜 **Wisdom:** ${dailyContent.quote}
+
+🔥 **Streak:** ${user.current_streak} days
+
+${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}
 `;
     await ctx.reply('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
   } catch (error) {
@@ -274,6 +304,57 @@ ${tipObj.precautions ? `⚠️ **Precautions:** ${tipObj.precautions}` : ''}`;
 // Healing tip command
 bot.command('healingtip', async (ctx) => {
   await sendHealingTip(ctx);
+});
+
+// Optimal recommendations command with web content
+bot.command('optimal', async (ctx) => {
+  try {
+    const user = await findOrCreateUser(ctx.from);
+    const goalTags = user.goal_tags as any || { general: true };
+    
+    // Get user's location (you can enhance this to get from user settings)
+    const userLocation = user.timezone?.split('/')[1] || 'Lagos';
+    
+    // Get optimal recommendations from web
+    const recommendations = await getOptimalRecommendations(goalTags, undefined, userLocation);
+    
+    let response = `🤖 **Optimal Recommendations for You**\n\n`;
+    
+    if (recommendations.herbalTip) {
+      response += `${recommendations.herbalTip}\n\n`;
+    }
+    
+    if (recommendations.healthAdvice) {
+      response += `${recommendations.healthAdvice}\n\n`;
+    }
+    
+    if (recommendations.weatherTip) {
+      response += `${recommendations.weatherTip}\n\n`;
+    }
+    
+    if (recommendations.newsInsight) {
+      response += `${recommendations.newsInsight}\n\n`;
+    }
+    
+    if (recommendations.aiSuggestion) {
+      response += `${recommendations.aiSuggestion}\n\n`;
+    }
+    
+    // If no web content available, provide fallback
+    if (Object.keys(recommendations).length === 0) {
+      response += `💡 **Personalized Tip**: Based on your goals, here's a custom recommendation:\n\n`;
+      const dailyContent = getDailyContent(user, user.current_day);
+      response += `${dailyContent.tip}\n\n`;
+      response += `📜 **Wisdom**: ${dailyContent.quote}`;
+    }
+    
+    await ctx.reply(response, { 
+      parse_mode: 'Markdown', 
+      reply_markup: mainMenuKeyboard.reply_markup 
+    });
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
 });
 
 
@@ -422,17 +503,29 @@ bot.command('addtip', async (ctx) => {
 bot.command('mystats', async (ctx) => {
   try {
     const user = await findOrCreateUser(ctx.from);
-    let lang: SupportedLang = 'en';
-    if (supportedLangs.includes(user['language_preference'] as SupportedLang)) {
-      lang = user['language_preference'] as SupportedLang;
-    }
     const progress = await getOrCreateProgressTracking(user);
     const journalCount = await countJournalEntries(user);
-    const statsMsg = `📊 ${t(lang, 'main_menu')} Stats\n\n` +
-      `🔥 Current Streak: ${progress.current_streak} days\n` +
-      `🏅 Longest Streak: ${progress.longest_streak} days\n` +
-      `✅ Days Completed: ${progress.total_days_completed}\n` +
-      `📖 Journal Entries: ${journalCount}`;
+    
+    // Get goal tags for display
+    const goalTags = user.goal_tags as any || { general: true };
+    const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal]);
+    const goalDisplay = activeGoals.map(goal => 
+      goal.charAt(0).toUpperCase() + goal.slice(1)
+    ).join(', ');
+    
+    const statsMsg = `📊 **Your Healing Journey Stats**
+
+🎯 **Focus Areas:** ${goalDisplay}
+📅 **Current Day:** ${user.current_day}/21
+🔥 **Current Streak:** ${user.current_streak} days
+🏅 **Longest Streak:** ${progress.longest_streak} days
+✅ **Total Days Completed:** ${progress.total_days_completed}
+📈 **Completion Rate:** ${progress.completion_rate}%
+💎 **Healing Score:** ${progress.healing_score}
+📖 **Journal Entries:** ${journalCount}
+
+${getStreakMotivation(user.current_streak)}`;
+    
     await ctx.reply(statsMsg, { parse_mode: 'Markdown', reply_markup: mainMenuKeyboard.reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
@@ -447,45 +540,78 @@ bot.hears('📊 My Stats', async (ctx) => {
   }
 });
 
-// Handle healing goals input after onboarding
+// Handle healing goals input after onboarding and AI-powered responses
 bot.on('text', async (ctx) => {
   const userId = ctx.from?.id;
   if (!userId) return;
   const state = getUserState(userId);
+  
   if (state && state.state === UserState.AWAITING_HEALING_GOALS) {
     try {
-      // Save healing goals (mock version)
+      // Parse and save healing goals using the new content engine
       const user = await findOrCreateUser(ctx.from);
-      const userRepo = AppDataSource.getRepository(User);
-      user.healing_goals = { goals: ctx.message.text };
-      await userRepo.save(user);
+      await updateUserGoalTags(user, ctx.message.text);
+      
+      // Get the parsed goals for display
+      const goalTags = user.goal_tags as any || { general: true };
+      const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal]);
+      const goalDisplay = activeGoals.map(goal => 
+        goal.charAt(0).toUpperCase() + goal.slice(1)
+      ).join(', ');
+      
       clearUserState(userId);
-      // Show main menu
-      await ctx.reply('🌱 Your healing goals have been saved! Here is your main menu:', {
-        reply_markup: {
-          inline_keyboard: [
-            [
-              { text: '📜 Wisdom Quote', callback_data: 'wisdom_quote' },
-              { text: '🌿 Herbal Tips', callback_data: 'herbal_tips' }
-            ],
-            [
-              { text: '📝 Journal', callback_data: 'journal_menu' },
-              { text: '💡 Healing Tip', callback_data: 'healing_tip' }
-            ],
-            [
-              { text: '📋 Daily Checklist', callback_data: 'daily_checklist' },
-              { text: '🏥 Health Guidance', callback_data: 'health_guidance' }
-            ],
-            [
-              { text: '📊 My Stats', callback_data: 'my_stats' },
-              { text: '⚙️ Settings', callback_data: 'settings_menu' }
-            ]
-          ]
-        },
+      
+      // Show personalized welcome message
+      await ctx.reply(`🌱 **Your Healing Journey Begins!**
+
+I've identified your healing goals: **${goalDisplay}**
+
+Your personalized 21-day transformation will focus on these areas. Each day, you'll receive:
+• 📋 Customized daily checklists
+• 💡 Goal-specific healing tips  
+• 📜 Relevant wisdom quotes
+• 📝 Targeted journaling prompts
+
+Ready to start your journey?`, {
+        reply_markup: mainMenuKeyboard.reply_markup,
         parse_mode: 'Markdown'
       });
     } catch (error) {
       handleBotError(ctx, error);
+    }
+  } else {
+    // AI-powered response for general questions
+    try {
+      const user = await findOrCreateUser(ctx.from);
+      const goalTags = user.goal_tags as any || { general: true };
+      
+      // Check if this looks like a health question
+      const healthKeywords = ['help', 'advice', 'tip', 'remedy', 'cure', 'treat', 'heal', 'symptom', 'problem', 'issue'];
+      const isHealthQuestion = healthKeywords.some(keyword => 
+        ctx.message.text.toLowerCase().includes(keyword)
+      );
+      
+      if (isHealthQuestion) {
+        // Get AI-powered recommendations
+        const recommendations = await getOptimalRecommendations(goalTags, ctx.message.text);
+        
+        if (recommendations.aiSuggestion) {
+          await ctx.reply(recommendations.aiSuggestion, { 
+            parse_mode: 'Markdown',
+            reply_markup: mainMenuKeyboard.reply_markup
+          });
+        } else {
+          // Fallback to goal-specific content
+          const dailyContent = getDailyContent(user, user.current_day);
+          await ctx.reply(`💡 **Personalized Advice**\n\n${dailyContent.tip}\n\n📜 **Wisdom**: ${dailyContent.quote}`, { 
+            parse_mode: 'Markdown',
+            reply_markup: mainMenuKeyboard.reply_markup
+          });
+        }
+      }
+    } catch (error) {
+      // Silently ignore errors for general text messages
+      console.log('Error processing general text message:', error);
     }
   }
 });

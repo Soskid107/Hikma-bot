@@ -24,6 +24,18 @@ export class User {
   @Column({ type: 'int', default: 1 })
   current_day!: number;
 
+  @Column({ type: 'int', default: 0 })
+  current_streak!: number;
+
+  @Column({ type: 'int', default: 0 })
+  total_days_completed!: number;
+
+  @Column({ length: 50, nullable: true })
+  last_checklist_date?: string;
+
+  @Column({ type: 'jsonb', nullable: true })
+  goal_tags?: object;
+
   @Column({ length: 50, default: 'Africa/Lagos' })
   timezone!: string;
 

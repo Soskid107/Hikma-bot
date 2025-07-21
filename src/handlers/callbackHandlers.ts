@@ -6,7 +6,7 @@ bot.on('callback_query', (ctx, next) => {
   return next();
 });
 
-import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from '../services/mockUserService';
+import { findOrCreateUser, updateNotificationSettings, updateUserLanguage } from '../services/userService';
 import { getOrCreateTodayChecklist, updateChecklistItem, getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/mockServices';
 import { mainMenuKeyboard, checklistMenuKeyboard, wisdomMenuKeyboard, herbalMenuKeyboard, healthMenuKeyboard, journalMenuKeyboard, settingsMenuKeyboard, healingMenuKeyboard } from './ui';
 import { handleError } from '../utils/errorHandler';
@@ -14,6 +14,8 @@ import { t, supportedLangs, SupportedLang } from '../utils/i18n';
 import { isAdmin } from '../config/admin';
 import { setUserState, getUserState, clearUserState, UserState } from '../services/stateService';
 import { getRandomWisdomQuote, getRandomHerbalTip, getRandomHealingTip, saveJournalEntry, countJournalEntries } from '../services/mockServices';
+import { getGoalSpecificJournalPrompt, getGoalSpecificQuote, getDailyContent } from '../services/contentEngine';
+import { getOptimalRecommendations } from '../services/webContentService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
 import { getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking } from '../services/mockUserService';
 import { handleBotError } from '../utils/errorHandler';
@@ -57,10 +59,19 @@ bot.action('back_to_main_menu', async (ctx) => {
 bot.action('wisdom_quote', async (ctx) => {
   try {
     await retryOperation(async () => {
-      let quote = await getRandomWisdomQuote();
-      if (!quote || quote.includes('Could not fetch')) {
-        quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
+      const user = await findOrCreateUser(ctx.from);
+      
+      // Get goal-specific wisdom quote
+      let quote = getGoalSpecificQuote(user);
+      
+      // Fallback to random quote if needed
+      if (!quote) {
+        quote = await getRandomWisdomQuote();
+        if (!quote || quote.includes('Could not fetch')) {
+          quote = 'Could not fetch a wisdom quote at this time. Here is one from Ibn Sina:\n"The body is the boat that carries us through life; we must keep it in good repair."';
+        }
       }
+      
       await ctx.editMessageText(`📜 Wisdom Quote:\n${quote}`, { 
         parse_mode: 'Markdown', 
         reply_markup: wisdomMenuKeyboard.reply_markup 
@@ -231,6 +242,92 @@ bot.action('settings_menu', async (ctx) => {
       const user = await findOrCreateUser(ctx.from);
       await ctx.editMessageText('⚙️ Settings\n\nWelcome to your settings panel! Here you can customize your healing journey experience.', { parse_mode: 'Markdown', reply_markup: settingsMenuKeyboard.reply_markup });
       await ctx.answerCbQuery('Settings menu loaded');
+    });
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+// Optimal recommendations with web content
+bot.action('optimal_recommendations', async (ctx) => {
+  try {
+    await retryOperation(async () => {
+      const user = await findOrCreateUser(ctx.from);
+      const goalTags = user.goal_tags as any || { general: true };
+      
+      // Get user's location
+      const userLocation = user.timezone?.split('/')[1] || 'Lagos';
+      
+      // Get optimal recommendations from web
+      const recommendations = await getOptimalRecommendations(goalTags, undefined, userLocation);
+      
+      let response = `🤖 **Optimal Recommendations for You**\n\n`;
+      
+      if (recommendations.herbalTip) {
+        response += `${recommendations.herbalTip}\n\n`;
+      }
+      
+      if (recommendations.healthAdvice) {
+        response += `${recommendations.healthAdvice}\n\n`;
+      }
+      
+      if (recommendations.weatherTip) {
+        response += `${recommendations.weatherTip}\n\n`;
+      }
+      
+      if (recommendations.newsInsight) {
+        response += `${recommendations.newsInsight}\n\n`;
+      }
+      
+      if (recommendations.aiSuggestion) {
+        response += `${recommendations.aiSuggestion}\n\n`;
+      }
+      
+      // If no web content available, provide fallback
+      if (Object.keys(recommendations).length === 0) {
+        response += `💡 **Personalized Tip**: Based on your goals, here's a custom recommendation:\n\n`;
+        const dailyContent = getDailyContent(user, user.current_day);
+        response += `${dailyContent.tip}\n\n`;
+        response += `📜 **Wisdom**: ${dailyContent.quote}`;
+      }
+      
+      await ctx.editMessageText(response, { 
+        parse_mode: 'Markdown', 
+        reply_markup: mainMenuKeyboard.reply_markup 
+      });
+      await ctx.answerCbQuery('Optimal recommendations provided');
+    });
+  } catch (error) {
+    handleBotError(ctx, error);
+  }
+});
+
+// Journal: Add new entry with goal-specific prompt
+bot.action('journal_add_new', async (ctx) => {
+  try {
+    await retryOperation(async () => {
+      const user = await findOrCreateUser(ctx.from);
+      const userId = ctx.from?.id;
+      
+      if (!userId) return;
+      
+      // Get goal-specific journal prompt
+      const journalPrompt = getGoalSpecificJournalPrompt(user);
+      
+      setUserState(userId, UserState.AWAITING_JOURNAL_ENTRY);
+      
+      await ctx.editMessageText(`📝 **New Journal Entry**
+
+💭 **Today's Reflection Prompt:**
+"${journalPrompt}"
+
+✍️ Please share your thoughts below. You can write as much or as little as feels right to you.
+
+❌ To cancel, type "cancel"`, { 
+        parse_mode: 'Markdown', 
+        reply_markup: { inline_keyboard: [[{ text: '❌ Cancel', callback_data: 'cancel_journal' }]] }
+      });
+      await ctx.answerCbQuery('Journal prompt provided');
     });
   } catch (error) {
     handleBotError(ctx, error);

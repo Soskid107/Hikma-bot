@@ -15,7 +15,10 @@ export const mainMenuKeyboard = Markup.inlineKeyboard([
     Markup.button.callback('🏥 Health Guidance', 'health_guidance')
   ],
   [
-    Markup.button.callback('📊 My Stats', 'my_stats'),
+    Markup.button.callback('🤖 Optimal Recommendations', 'optimal_recommendations'),
+    Markup.button.callback('📊 My Stats', 'my_stats')
+  ],
+  [
     Markup.button.callback('⚙️ Settings', 'settings_menu')
   ]
 ]);
