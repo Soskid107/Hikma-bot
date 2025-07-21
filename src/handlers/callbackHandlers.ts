@@ -159,26 +159,11 @@ bot.action('daily_checklist', async (ctx) => {
       const telegramUser = ctx.from;
       const user = await findOrCreateUser(telegramUser);
       const checklist = await getOrCreateTodayChecklist(user);
-      
-      // Get customized checklist items for this day
-      const customizedItems = getCustomizedChecklistItems(user);
-      const progressSummary = getUserProgressSummary(user);
-      const dailyTip = getDailyTip(user);
-      
       const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-      const checklistMsg = `
-${progressSummary}
-
-${progressBar} ${checklist.completion_percentage}% Complete
-
-**Today's Healing Rituals:**
-${checklist.checklist_items.map((item: any) => {
-  const emoji = ['💧', '🌿', '🥗', '😴', '🧘'][item.order] || '📋';
-  return `${emoji} ${item.text} [${item.completed ? '✅' : '❌'}]`;
-}).join('\n')}
-
-💡 **Today's Tip:** ${checklist.daily_tip || dailyTip}
-`;
+      const checklistMsg = `\n🕯️ Day ${user.current_day} - ${checklist.daily_focus}\n\n${progressBar} ${checklist.completion_percentage}% Complete\n\n**Today's Healing Rituals:**\n${checklist.checklist_items.map((item) => {
+        const emoji = ['💧', '🌿', '🥗', '😴', '🧘'][item.order] || '📋';
+        return `${emoji} ${item.text} [${item.completed ? '✅' : '❌'}]`;
+      }).join('\n')}\n\n💡 **Today's Tip:** ${checklist.daily_tip}`;
       await ctx.editMessageText(checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
       await ctx.answerCbQuery('Checklist loaded');
     });

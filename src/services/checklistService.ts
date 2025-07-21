@@ -81,16 +81,4 @@ export function getPersonalizedChecklistContent(user: User): { checklist: string
     tip: dailyContent.tip,
     focus: dailyContent.focus
   };
-}
-
-// Get a random healing checklist item/tip (fallback for backward compatibility)
-export function getRandomChecklistTip(): string {
-  const tips = [
-    '💧 Drink 500ml of warm water first thing in the morning to kickstart your metabolism.',
-    '🌿 Take your black seed and garlic for natural healing support.',
-    '🥗 Eat a light meal before 8pm to aid digestion and restful sleep.',
-    '😴 Aim to sleep by 10pm for optimal liver detox and healing.',
-    '🧘 Spend 5 minutes clearing your thoughts and practicing mindfulness.'
-  ];
-  return tips[Math.floor(Math.random() * tips.length)];
 } 

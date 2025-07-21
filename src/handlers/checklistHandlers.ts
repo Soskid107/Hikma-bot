@@ -1,7 +1,6 @@
 import { bot } from '../services/botService';
 import { findOrCreateUser, getOrCreateProgressTracking } from '../services/userService';
 import { getOrCreateTodayChecklist, updateChecklistItem } from '../services/checklistService';
-import { getCustomizedChecklistItems, getUserProgressSummary, getDailyTip } from '../services/healingPlanService';
 import { updateDailyProgress, getProgressSummary } from '../services/streakService';
 import { getDailyContent } from '../services/contentEngine';
 import { checklistMenuKeyboard } from './ui';

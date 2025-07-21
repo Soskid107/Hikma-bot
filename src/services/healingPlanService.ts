@@ -1,3 +1,4 @@
+// DEPRECATED: This file is replaced by contentEngine.ts and checklistService.ts. Do not use these functions.
 // Database service disabled for local/mock-only operation
 // import AppDataSource from '../config/data-source';
 // import { User } from '../entities/User';

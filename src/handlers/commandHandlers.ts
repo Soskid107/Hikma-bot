@@ -1,6 +1,5 @@
 import { bot } from '../services/botService';
-import { getOrCreateTodayChecklist, updateChecklistItem, getRandomChecklistTip } from '../services/checklistService';
-import { getUserProgressSummary, getDailyTip, getCustomizedChecklistItems } from '../services/healingPlanService';
+import { getOrCreateTodayChecklist, updateChecklistItem } from '../services/checklistService';
 import { saveJournalEntry, countJournalEntries } from '../services/journalService';
 import { getRandomWisdomQuote } from '../services/wisdomService';
 import { getRandomHerbalTip, addHerbalTip } from '../services/herbalService';
@@ -295,34 +294,14 @@ async function sendChecklist(ctx: any) {
   const telegramUser = ctx.from;
   try {
     const user = await findOrCreateUser(telegramUser);
-    
     // Update daily progress and streak
     const progressUpdate = await updateDailyProgress(user);
-    
     const checklist = await getOrCreateTodayChecklist(user);
     const progress = await getOrCreateProgressTracking(user);
-    
     const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-    
-    const checklistMsg = `
-${checklist.daily_focus}
-السلام عليكم! Time for your healing checklist
-
-**Today's Healing Rituals:**
-${checklist.checklist_items.map((item: any) => {
-  return `${item.text} [${item.completed ? '✅' : '❌'}]`;
-}).join('\n')}
-
-Progress: ${progressBar} ${checklist.completion_percentage}% Complete
-
-💡 **Today's Tip:** ${checklist.daily_tip}
-
-📜 **Wisdom:** ${checklist.daily_quote}
-
-🔥 **Streak:** ${user.current_streak} days
-
-${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}
-`;
+    const checklistMsg = `\n${checklist.daily_focus}\nالسلام عليكم! Time for your healing checklist\n\n**Today's Healing Rituals:**\n${checklist.checklist_items.map((item) => {
+      return `${item.text} [${item.completed ? '✅' : '❌'}]`;
+    }).join('\n')}\n\nProgress: ${progressBar} ${checklist.completion_percentage}% Complete\n\n💡 **Today's Tip:** ${checklist.daily_tip}\n\n📜 **Wisdom:** ${checklist.daily_quote}\n\n🔥 **Streak:** ${user.current_streak} days\n\n${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}`;
     await ctx.reply('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
@@ -377,23 +356,40 @@ async function sendHealthGuidance(ctx: any) {
     console.log('Health guidance command received:', ctx.message?.text);
     const args = ctx.message?.text?.split(' ').slice(1);
     console.log('Health args:', args);
-    
     if (!args || args.length === 0) {
-      console.log('No args provided, showing available symptoms');
-      const availableSymptoms = await getAvailableSymptoms();
-      await ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map((symptom: string) => `• ${symptom.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
-      return;
+      try {
+        console.log('No args provided, showing available symptoms');
+        const availableSymptoms = await getAvailableSymptoms();
+        if (!availableSymptoms || availableSymptoms.length === 0) {
+          await ctx.reply('⚠️ Sorry, no health symptoms are available at the moment. Please try again later.');
+          return;
+        }
+        await ctx.reply(`🏥 **Health Guidance System**\n\nI can provide educational information about common symptoms and wellness advice.\n\n📋 **Available Symptoms:**\n${availableSymptoms.map((symptom: string) => `• ${symptom.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase())}`).join('\n')}\n\n💡 **How to use:**\n/health [symptom]\nExample: /health headache\n\n⚠️ **Important:** This is educational information only and should not replace professional medical advice. Always consult a qualified healthcare provider for proper diagnosis and treatment.`, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+        return;
+      } catch (symptomError) {
+        console.error('Error fetching available symptoms:', symptomError);
+        await ctx.reply('⚠️ Sorry, something went wrong while fetching health symptoms. Please try again later.');
+        return;
+      }
     }
-    
     const symptom = args.join(' ');
-    console.log('Searching for symptom:', symptom);
-    const guidance = await getHealthGuidance(symptom);
-    console.log('Guidance result length:', guidance?.length);
-    await ctx.reply('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
-    console.log('Health guidance response sent');
+    try {
+      console.log('Searching for symptom:', symptom);
+      const guidance = await getHealthGuidance(symptom);
+      if (!guidance) {
+        await ctx.reply('⚠️ Sorry, no guidance found for that symptom. Please try another or use /health to see available options.');
+        return;
+      }
+      console.log('Guidance result length:', guidance?.length);
+      await ctx.reply('🏥 Health Guidance:\n' + guidance, { parse_mode: 'Markdown', reply_markup: healthMenuKeyboard.reply_markup });
+      console.log('Health guidance response sent');
+    } catch (guidanceError) {
+      console.error('Error fetching health guidance:', guidanceError);
+      await ctx.reply('⚠️ Sorry, something went wrong while fetching health guidance. Please try again later.');
+    }
   } catch (error) {
-    console.error('Error in sendHealthGuidance:', error);
-    handleBotError(ctx, error);
+    console.error('Error in sendHealthGuidance (outer catch):', error);
+    await ctx.reply('⚠️ Sorry, an unexpected error occurred. Please try again later.');
   }
 }
 
