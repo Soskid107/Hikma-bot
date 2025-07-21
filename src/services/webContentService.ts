@@ -1,4 +1,4 @@
-import axios from 'axios';
+import * as axios from 'axios';
 import { GoalTags } from './contentEngine';
 
 // Web APIs and services for content fetching
