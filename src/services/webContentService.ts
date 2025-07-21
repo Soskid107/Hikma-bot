@@ -48,12 +48,13 @@ async function fetchHerbalInfo(herbName: string): Promise<HerbalInfo | null> {
     });
 
     if (response.data) {
+      const data = response.data as any;
       const herbalInfo: HerbalInfo = {
-        name: response.data.name || herbName,
-        benefits: response.data.benefits || [],
-        usage: response.data.usage || 'Consult with a healthcare provider',
-        precautions: response.data.precautions || 'Use with caution',
-        scientificName: response.data.scientificName
+        name: data.name || herbName,
+        benefits: data.benefits || [],
+        usage: data.usage || 'Consult with a healthcare provider',
+        precautions: data.precautions || 'Use with caution',
+        scientificName: data.scientificName
       };
       
       contentCache.set(cacheKey, { content: herbalInfo, timestamp: Date.now() });
@@ -85,12 +86,13 @@ async function fetchHealthInfo(condition: string): Promise<HealthInfo | null> {
     });
 
     if (response.data) {
+      const data = response.data as any;
       const healthInfo: HealthInfo = {
-        condition: response.data.condition || condition,
-        symptoms: response.data.symptoms || [],
-        naturalRemedies: response.data.naturalRemedies || [],
-        lifestyleTips: response.data.lifestyleTips || [],
-        whenToSeekHelp: response.data.whenToSeekHelp || 'Consult a healthcare provider'
+        condition: data.condition || condition,
+        symptoms: data.symptoms || [],
+        naturalRemedies: data.naturalRemedies || [],
+        lifestyleTips: data.lifestyleTips || [],
+        whenToSeekHelp: data.whenToSeekHelp || 'Consult a healthcare provider'
       };
       
       contentCache.set(cacheKey, { content: healthInfo, timestamp: Date.now() });
@@ -142,8 +144,9 @@ async function generateAIContent(prompt: string, goalTags: GoalTags): Promise<st
         timeout: 10000
       });
 
-      if (response.data?.choices?.[0]?.message?.content) {
-        const aiContent = response.data.choices[0].message.content;
+      const data = response.data as any;
+      if (data?.choices?.[0]?.message?.content) {
+        const aiContent = data.choices[0].message.content;
         contentCache.set(cacheKey, { content: aiContent, timestamp: Date.now() });
         return aiContent;
       }
@@ -174,7 +177,7 @@ async function getWeatherBasedRecommendations(location: string): Promise<string 
     });
 
     if (response.data) {
-      const weather = response.data;
+      const weather = response.data as any;
       let recommendation = '';
       
       if (weather.temperature < 10) {
@@ -215,8 +218,9 @@ async function getHealthNews(topic: string): Promise<string | null> {
       }
     });
 
-    if (response.data?.articles?.[0]) {
-      const article = response.data.articles[0];
+    const data = response.data as any;
+    if (data?.articles?.[0]) {
+      const article = data.articles[0];
       const newsContent = `📰 **Latest Health Insight**: ${article.title}\n\n${article.description}\n\n*Source: ${article.source}*`;
       
       contentCache.set(cacheKey, { content: newsContent, timestamp: Date.now() });
