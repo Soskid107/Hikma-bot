@@ -1,0 +1,110 @@
+{
+  "Skin": {
+    "checklists": [
+      ["Drink nettle tea", "Avoid dairy", "Wash face with cool water"],
+      ["Apply aloe vera", "Eat more greens", "Change pillowcase"]
+    ],
+    "herbs": [
+      {"name": "Burdock Root", "usage": "Steep 1 tsp in hot water, drink daily"}
+    ],
+    "quotes": [
+      "The skin is the mirror of inner balance. – Ibn Sina"
+    ]
+  },
+  "Sleep": {
+    "checklists": [
+      ["No screens 1 hour before bed", "Drink chamomile tea", "Darken your room"],
+      ["Go to bed by 10pm", "Read a calming book", "Practice deep breathing"]
+    ],
+    "herbs": [
+      {"name": "Chamomile", "usage": "Steep 1 tsp in hot water, drink before bed"}
+    ],
+    "quotes": [
+      "Sleep is the best meditation. – Dalai Lama"
+    ]
+  },
+  "Digestion": {
+    "checklists": [
+      ["Eat slowly and chew well", "Drink ginger tea", "Avoid heavy meals at night"],
+      ["Add probiotics to your diet", "Eat more fiber", "Take a gentle walk after meals"]
+    ],
+    "herbs": [
+      {"name": "Ginger", "usage": "Slice and steep in hot water, drink after meals"}
+    ],
+    "quotes": [
+      "Good digestion is the root of all healing. – Ibn Sina"
+    ]
+  },
+  "Emotions": {
+    "checklists": [
+      ["Practice gratitude journaling", "Take 5 deep breaths", "Listen to uplifting music"],
+      ["Write down 3 things you love about yourself", "Connect with a friend", "Spend time in nature"]
+    ],
+    "herbs": [
+      {"name": "Lemon Balm", "usage": "Steep 1 tsp in hot water, drink to calm the mind"}
+    ],
+    "quotes": [
+      "Emotions are the colors of the soul. – Ibn Sina"
+    ]
+  },
+  "Hormones": {
+    "checklists": [
+      ["Eat flaxseeds", "Practice gentle yoga", "Get sunlight in the morning"],
+      ["Avoid processed sugar", "Drink spearmint tea", "Go for a walk"]
+    ],
+    "herbs": [
+      {"name": "Spearmint", "usage": "Steep 1 tsp in hot water, drink daily for balance"}
+    ],
+    "quotes": [
+      "Balance is the key to health. – Ibn Sina"
+    ]
+  },
+  "Energy": {
+    "checklists": [
+      ["Drink a glass of water on waking", "Stretch for 5 minutes", "Eat a fresh fruit"],
+      ["Take a brisk walk", "Practice deep breathing", "Limit caffeine after noon"]
+    ],
+    "herbs": [
+      {"name": "Ginseng", "usage": "Steep 1 tsp in hot water, drink in the morning"}
+    ],
+    "quotes": [
+      "Vitality is the essence of life. – Ibn Sina"
+    ]
+  },
+  "Immunity": {
+    "checklists": [
+      ["Take vitamin C-rich foods", "Wash hands regularly", "Get enough sleep"],
+      ["Eat garlic", "Drink echinacea tea", "Spend time outdoors"]
+    ],
+    "herbs": [
+      {"name": "Echinacea", "usage": "Steep 1 tsp in hot water, drink to support immunity"}
+    ],
+    "quotes": [
+      "A strong immune system is your best defense. – Ibn Sina"
+    ]
+  },
+  "Stress": {
+    "checklists": [
+      ["Practice 4-7-8 breathing", "Take a mindful walk", "Write down your worries"],
+      ["Do a 5-minute meditation", "Drink tulsi tea", "Listen to calming sounds"]
+    ],
+    "herbs": [
+      {"name": "Tulsi (Holy Basil)", "usage": "Steep 1 tsp in hot water, drink to reduce stress"}
+    ],
+    "quotes": [
+      "Peace is found within, not without. – Ibn Sina"
+    ]
+  },
+  "Spiritual": {
+    "checklists": [
+      ["Spend 5 minutes in silent reflection", "Read a spiritual text", "Light a candle with intention"],
+      ["Practice mindful breathing", "Write a gratitude prayer", "Listen to spiritual music"]
+    ],
+    "herbs": [
+      {"name": "Frankincense", "usage": "Burn as incense or add a drop to warm water for meditation"}
+    ],
+    "quotes": [
+      "The soul’s nourishment is remembrance. – Ibn Sina"
+    ]
+  }
+} 

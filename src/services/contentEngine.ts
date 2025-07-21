@@ -1,4 +1,5 @@
 import { User } from '../entities/User';
+import { loadKnowledge } from './localKnowledgeService';
 
 // Goal categories that can be extracted from user input
 export interface GoalTags {
@@ -506,4 +507,21 @@ export function getGoalSpecificJournalPrompt(user: User): string {
   }
   
   return content.journalPrompts[Math.floor(Math.random() * content.journalPrompts.length)];
+} 
+
+export function mapGoalsToKnowledgeBase(goals: string[]): string[] {
+  const knowledge = loadKnowledge();
+  // Lowercase all keys for matching
+  const kbKeys = Object.keys(knowledge).map(k => k.toLowerCase());
+  return goals
+    .map(g => g.toLowerCase())
+    .map(g => {
+      // Find the closest match (exact or partial)
+      const exact = kbKeys.find(k => k === g);
+      if (exact) return Object.keys(knowledge)[kbKeys.indexOf(exact)];
+      const partial = kbKeys.find(k => g.includes(k) || k.includes(g));
+      if (partial) return Object.keys(knowledge)[kbKeys.indexOf(partial)];
+      return null;
+    })
+    .filter(Boolean) as string[];
 } 

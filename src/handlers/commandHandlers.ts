@@ -7,7 +7,7 @@ import { getRandomHealingTip } from '../services/db/healingTipService';
 import { getHealthGuidance, getAvailableSymptoms } from '../services/healthGuidanceService';
 import { findOrCreateUser, getUserHealingGoals, generate21DayPlan, updateUserStreak, getOrCreateProgressTracking, getAllActiveUsers } from '../services/userService';
 import { updateDailyProgress, getProgressSummary, getPersonalizedReminder, getStreakMotivation } from '../services/streakService';
-import { updateUserGoalTags, getDailyContent, getGoalSpecificQuote, getGoalSpecificJournalPrompt } from '../services/contentEngine';
+import { updateUserGoalTags, getDailyContent, getGoalSpecificQuote, getGoalSpecificJournalPrompt, mapGoalsToKnowledgeBase } from '../services/contentEngine';
 import { getOptimalRecommendations } from '../services/webContentService';
 import { t } from '../utils/i18n';
 import { isAdmin } from '../config/admin';
@@ -16,6 +16,8 @@ import AppDataSource from '../config/data-source';
 import { User } from '../entities/User';
 import { handleBotError } from '../utils/errorHandler';
 import { HerbalTip } from '../entities/HerbalTip';
+import { getLocalPlan } from '../services/localKnowledgeService';
+import { getGeminiPlan } from '../services/geminiService';
 
 const supportedLangs = ['en', 'fr', 'ar', 'sw'] as const;
 type SupportedLang = typeof supportedLangs[number];
@@ -116,6 +118,17 @@ bot.on('text', async (ctx) => {
       
       // Parse user goals from text input
       await updateUserGoalTags(user, userInput);
+      // Map parsed goals to local knowledge base keys
+      const parsedGoals = Object.keys(user.goal_tags || {});
+      const mappedGoals = mapGoalsToKnowledgeBase(parsedGoals);
+      // Save mapped goals as goal_tags
+      if (!user.goal_tags || typeof user.goal_tags !== 'object') {
+        user.goal_tags = {};
+      }
+      const goalTagsObj = user.goal_tags as Record<string, boolean>;
+      mappedGoals.forEach(g => { goalTagsObj[g] = true; });
+      user.goal_tags = goalTagsObj;
+      // No user.save?.() here, rely on updateUserGoalTags and DB update
       clearUserState(user.id);
       
       await ctx.reply(`🎯 **Perfect! I've analyzed your goals:**
@@ -299,9 +312,49 @@ async function sendChecklist(ctx: any) {
     const checklist = await getOrCreateTodayChecklist(user);
     const progress = await getOrCreateProgressTracking(user);
     const progressBar = '▓'.repeat(Math.round(checklist.completion_percentage / 20)) + '░'.repeat(5 - Math.round(checklist.completion_percentage / 20));
-    const checklistMsg = `\n${checklist.daily_focus}\nالسلام عليكم! Time for your healing checklist\n\n**Today's Healing Rituals:**\n${checklist.checklist_items.map((item) => {
-      return `${item.text} [${item.completed ? '✅' : '❌'}]`;
-    }).join('\n')}\n\nProgress: ${progressBar} ${checklist.completion_percentage}% Complete\n\n💡 **Today's Tip:** ${checklist.daily_tip}\n\n📜 **Wisdom:** ${checklist.daily_quote}\n\n🔥 **Streak:** ${user.current_streak} days\n\n${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}`;
+
+    // Determine active goals for plan
+    let goalTags: Record<string, boolean> = { general: true };
+    if (typeof user.goal_tags === 'object' && user.goal_tags !== null) {
+      goalTags = user.goal_tags as Record<string, boolean>;
+    }
+    const activeGoals = Object.keys(goalTags).filter(goal => goalTags[goal] === true);
+    // Try Gemini API first
+    let plan = null;
+    let usedGemini = false;
+    let userInput = activeGoals.join(', ');
+    if (user.healing_goals && typeof user.healing_goals === 'object' && 'raw' in user.healing_goals) {
+      userInput = (user.healing_goals as any).raw || userInput;
+    }
+    try {
+      console.log(`[Gemini] User ${user.id} | Input: "${userInput}" | Goals: [${activeGoals.join(', ')}] | Trying Gemini API...`);
+      plan = await getGeminiPlan(userInput, activeGoals);
+      if (plan) {
+        usedGemini = true;
+        console.log(`[Gemini] User ${user.id} | Gemini SUCCESS | Tags: [${plan.goalTags.join(', ')}] | Checklist: [${plan.checklist.join(', ')}] | Herb: ${plan.herb.name}`);
+      } else {
+        console.log(`[Gemini] User ${user.id} | Gemini returned null, falling back to local plan.`);
+      }
+    } catch (e) {
+      console.log(`[Gemini] User ${user.id} | Gemini ERROR: ${e} | Falling back to local plan.`);
+      plan = null;
+    }
+    if (!plan) {
+      plan = getLocalPlan(activeGoals, user.current_day || 1);
+      console.log(`[Fallback] User ${user.id} | Used local plan | Checklist: [${plan.checklist.join(', ')}] | Herb: ${plan.herb.name}`);
+    }
+    // Milestone celebration logic
+    const milestoneMessages: Record<number, string> = {
+      3: '🎉 Congratulations! You have a 3-day healing streak! Keep it up! 🌱',
+      7: '🏅 Amazing! 7 days of healing habits. You are building a new you!',
+      14: '🌟 Two weeks strong! Your commitment is inspiring. Ibn Sina would be proud!',
+      21: '🥇 21 days complete! You have completed a full healing journey. Celebrate your transformation!'
+    };
+    let milestoneMsg = '';
+    if (milestoneMessages[user.current_streak]) {
+      milestoneMsg = `\n\n${milestoneMessages[user.current_streak]}`;
+    }
+    const checklistMsg = `\n${checklist.daily_focus}\nالسلام عليكم! Time for your healing checklist\n\n**Today's Healing Rituals:**\n${plan.checklist.map((item: string) => `✅ ${item}`).join('\n')}\n\n🍵 **Herb of the Day:** ${plan.herb.name} — ${plan.herb.usage}\n\n📜 **Wisdom:** ${plan.quote}${usedGemini ? ' (AI-generated)' : ''}\n\nProgress: ${progressBar} ${checklist.completion_percentage}% Complete\n\n🔥 **Streak:** ${user.current_streak} days${milestoneMsg}\n\n${progressUpdate.milestone ? `\n🎉 **Milestone Achieved!**\n${progressUpdate.milestone}` : ''}`;
     await ctx.reply('📋 Daily Checklist:\n' + checklistMsg, { parse_mode: 'Markdown', reply_markup: checklistMenuKeyboard(checklist).reply_markup });
   } catch (error) {
     handleBotError(ctx, error);
